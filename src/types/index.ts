@@ -41,10 +41,8 @@ export interface Settings {
   showTrendIndicators: boolean;
   messageTone: MessageTone;
   managementNames: string[];
-  /** GitHub Personal Access Token (gist scope) for cloud sync */
-  githubPAT?: string;
-  /** ID of the secret Gist used for cloud storage */
-  gistId?: string;
+  /** Store number for cloud sync (e.g. "1234") */
+  storeNumber?: string;
 }
 
 export interface AppData {

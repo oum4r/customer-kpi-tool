@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import type { AppData, WeekData, Targets, Settings, PeriodConfig } from '../types';
 import { MOCK_APP_DATA } from '../mock/mockData';
-import { createGist, readGist, updateGist } from '../engine/gistStorage';
+import { readStoreData, writeStoreData } from '../engine/supabaseStorage';
 
 // ============================================================
 // Context interface
@@ -20,16 +20,16 @@ export interface AppDataContextValue {
   importData: (json: string) => void;
   currentWeek: number | null;
   setCurrentWeek: (week: number) => void;
-  /** True while a Gist cloud sync operation is in progress */
+  /** True while a cloud sync operation is in progress */
   isSyncing: boolean;
-  /** Timestamp of last successful Gist sync */
+  /** Timestamp of last successful cloud sync */
   lastSyncedAt: Date | null;
   /** Error message from last sync attempt, or null if successful */
   syncError: string | null;
-  /** Manually push current data to Gist */
-  syncToGist: () => Promise<void>;
-  /** Manually pull data from Gist and merge into local state */
-  loadFromGist: () => Promise<void>;
+  /** Manually push current data to the cloud */
+  syncToCloud: () => Promise<void>;
+  /** Manually pull data from the cloud and merge into local state */
+  loadFromCloud: () => Promise<void>;
 }
 
 export const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -40,7 +40,7 @@ export const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 const STORAGE_KEY = 'kpi-tool-app-data';
 
-/** Debounce delay (ms) before auto-syncing to Gist after a local save */
+/** Debounce delay (ms) before auto-syncing to the cloud after a local save */
 const AUTO_SYNC_DELAY_MS = 1000;
 
 /**
@@ -115,7 +115,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       : null;
   });
 
-  // ── Gist sync state ──────────────────────────────────────
+  // ── Cloud sync state ──────────────────────────────────────
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -124,81 +124,64 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const autoSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
-   * Guard to prevent the initial loadFromGist from being called more than
+   * Guard to prevent the initial loadFromCloud from being called more than
    * once (React StrictMode double-mount, etc.).
    */
-  const hasLoadedFromGistRef = useRef(false);
+  const hasLoadedFromCloudRef = useRef(false);
 
-  // ── Gist sync: push to cloud ─────────────────────────────
+  // ── Cloud sync: push to cloud ─────────────────────────────
 
   /**
-   * Push current appData to the configured GitHub Gist.
-   * If no PAT is set, silently returns without error.
-   * If no gistId exists yet, a new Gist is created and the
-   * returned ID is persisted into settings.
+   * Push current appData to Supabase.
+   * If no store number is set, silently returns without error.
    */
-  const syncToGist = useCallback(async () => {
-    // Use a ref-based read of the latest state so the callback
-    // identity stays stable while still accessing fresh data.
+  const syncToCloud = useCallback(async () => {
     const data = appData;
-    const pat = data.settings.githubPAT;
+    const storeNumber = data.settings.storeNumber;
 
-    if (!pat) return; // No token configured — nothing to do
+    if (!storeNumber) return; // No store number configured — nothing to do
 
     setIsSyncing(true);
     setSyncError(null);
 
     try {
-      if (data.settings.gistId) {
-        // Update existing Gist
-        await updateGist(pat, data.settings.gistId, data);
-      } else {
-        // Create a brand-new Gist and save the ID locally
-        const newGistId = await createGist(pat, data);
-        const updatedSettings: Settings = { ...data.settings, gistId: newGistId };
-        const updatedData: AppData = { ...data, settings: updatedSettings };
-        setAppDataState(updatedData);
-        saveToStorage(updatedData);
-      }
-
+      await writeStoreData(storeNumber, data);
       setLastSyncedAt(new Date());
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown sync error.';
       setSyncError(message);
-      console.error('Gist sync failed:', message);
+      console.error('Cloud sync failed:', message);
     } finally {
       setIsSyncing(false);
     }
   }, [appData]);
 
-  // ── Gist sync: pull from cloud ────────────────────────────
+  // ── Cloud sync: pull from cloud ────────────────────────────
 
   /**
-   * Pull data from the configured GitHub Gist and merge it into local state.
-   * Gist data wins for all fields except the local PAT and gistId, which are
-   * preserved so the user never loses their credentials.
+   * Pull data from Supabase and merge it into local state.
+   * Remote data wins for all fields except the local storeNumber,
+   * which is preserved so the user never loses their identifier.
    */
-  const loadFromGist = useCallback(async () => {
+  const loadFromCloud = useCallback(async () => {
     const data = appData;
-    const pat = data.settings.githubPAT;
-    const gistId = data.settings.gistId;
+    const storeNumber = data.settings.storeNumber;
 
-    if (!pat || !gistId) return; // Not configured — nothing to do
+    if (!storeNumber) return; // Not configured — nothing to do
 
     setIsSyncing(true);
     setSyncError(null);
 
     try {
-      const remote = await readGist(pat, gistId);
+      const remote = await readStoreData(storeNumber);
 
       if (remote) {
-        // Merge: remote data wins, but preserve local PAT and gistId
+        // Merge: remote data wins, but preserve local storeNumber
         const merged: AppData = {
           ...remote,
           settings: {
             ...remote.settings,
-            githubPAT: pat,
-            gistId: gistId,
+            storeNumber: storeNumber,
           },
         };
 
@@ -215,7 +198,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown sync error.';
       setSyncError(message);
-      console.error('Gist load failed:', message);
+      console.error('Cloud load failed:', message);
     } finally {
       setIsSyncing(false);
     }
@@ -226,8 +209,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveToStorage(appData);
 
-    // Schedule a debounced auto-sync if a PAT is configured
-    if (appData.settings.githubPAT) {
+    // Schedule a debounced auto-sync if a store number is configured
+    if (appData.settings.storeNumber) {
       // Clear any previously scheduled sync
       if (autoSyncTimerRef.current) {
         clearTimeout(autoSyncTimerRef.current);
@@ -235,7 +218,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
       autoSyncTimerRef.current = setTimeout(() => {
         // Fire-and-forget — errors are captured in syncError state
-        void syncToGist();
+        void syncToCloud();
       }, AUTO_SYNC_DELAY_MS);
     }
 
@@ -245,17 +228,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         clearTimeout(autoSyncTimerRef.current);
       }
     };
-  }, [appData, syncToGist]);
+  }, [appData, syncToCloud]);
 
-  // ── On mount: pull from Gist if credentials exist ─────────
+  // ── On mount: pull from cloud if store number exists ────────
 
   useEffect(() => {
-    if (hasLoadedFromGistRef.current) return;
-    hasLoadedFromGistRef.current = true;
+    if (hasLoadedFromCloudRef.current) return;
+    hasLoadedFromCloudRef.current = true;
 
     const data = loadFromStorage();
-    if (data.settings.githubPAT && data.settings.gistId) {
-      void loadFromGist();
+    if (data.settings.storeNumber) {
+      void loadFromCloud();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -377,8 +360,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         isSyncing,
         lastSyncedAt,
         syncError,
-        syncToGist,
-        loadFromGist,
+        syncToCloud,
+        loadFromCloud,
       }}
     >
       {children}
