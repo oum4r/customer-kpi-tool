@@ -1,6 +1,7 @@
-import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import type { AppData, WeekData, Targets, Settings, PeriodConfig } from '../types';
 import { MOCK_APP_DATA } from '../mock/mockData';
+import { createGist, readGist, updateGist } from '../engine/gistStorage';
 
 // ============================================================
 // Context interface
@@ -19,6 +20,16 @@ export interface AppDataContextValue {
   importData: (json: string) => void;
   currentWeek: number | null;
   setCurrentWeek: (week: number) => void;
+  /** True while a Gist cloud sync operation is in progress */
+  isSyncing: boolean;
+  /** Timestamp of last successful Gist sync */
+  lastSyncedAt: Date | null;
+  /** Error message from last sync attempt, or null if successful */
+  syncError: string | null;
+  /** Manually push current data to Gist */
+  syncToGist: () => Promise<void>;
+  /** Manually pull data from Gist and merge into local state */
+  loadFromGist: () => Promise<void>;
 }
 
 export const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -28,6 +39,9 @@ export const AppDataContext = createContext<AppDataContextValue | null>(null);
 // ============================================================
 
 const STORAGE_KEY = 'kpi-tool-app-data';
+
+/** Debounce delay (ms) before auto-syncing to Gist after a local save */
+const AUTO_SYNC_DELAY_MS = 1000;
 
 /**
  * Load persisted AppData from localStorage, falling back to mock data.
@@ -101,10 +115,152 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       : null;
   });
 
-  // Persist to localStorage whenever appData changes
+  // ── Gist sync state ──────────────────────────────────────
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  /** Timer handle for debounced auto-sync */
+  const autoSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Guard to prevent the initial loadFromGist from being called more than
+   * once (React StrictMode double-mount, etc.).
+   */
+  const hasLoadedFromGistRef = useRef(false);
+
+  // ── Gist sync: push to cloud ─────────────────────────────
+
+  /**
+   * Push current appData to the configured GitHub Gist.
+   * If no PAT is set, silently returns without error.
+   * If no gistId exists yet, a new Gist is created and the
+   * returned ID is persisted into settings.
+   */
+  const syncToGist = useCallback(async () => {
+    // Use a ref-based read of the latest state so the callback
+    // identity stays stable while still accessing fresh data.
+    const data = appData;
+    const pat = data.settings.githubPAT;
+
+    if (!pat) return; // No token configured — nothing to do
+
+    setIsSyncing(true);
+    setSyncError(null);
+
+    try {
+      if (data.settings.gistId) {
+        // Update existing Gist
+        await updateGist(pat, data.settings.gistId, data);
+      } else {
+        // Create a brand-new Gist and save the ID locally
+        const newGistId = await createGist(pat, data);
+        const updatedSettings: Settings = { ...data.settings, gistId: newGistId };
+        const updatedData: AppData = { ...data, settings: updatedSettings };
+        setAppDataState(updatedData);
+        saveToStorage(updatedData);
+      }
+
+      setLastSyncedAt(new Date());
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown sync error.';
+      setSyncError(message);
+      console.error('Gist sync failed:', message);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [appData]);
+
+  // ── Gist sync: pull from cloud ────────────────────────────
+
+  /**
+   * Pull data from the configured GitHub Gist and merge it into local state.
+   * Gist data wins for all fields except the local PAT and gistId, which are
+   * preserved so the user never loses their credentials.
+   */
+  const loadFromGist = useCallback(async () => {
+    const data = appData;
+    const pat = data.settings.githubPAT;
+    const gistId = data.settings.gistId;
+
+    if (!pat || !gistId) return; // Not configured — nothing to do
+
+    setIsSyncing(true);
+    setSyncError(null);
+
+    try {
+      const remote = await readGist(pat, gistId);
+
+      if (remote) {
+        // Merge: remote data wins, but preserve local PAT and gistId
+        const merged: AppData = {
+          ...remote,
+          settings: {
+            ...remote.settings,
+            githubPAT: pat,
+            gistId: gistId,
+          },
+        };
+
+        setAppDataState(merged);
+        saveToStorage(merged);
+
+        // Update currentWeek to match the merged data
+        if (merged.weeks.length > 0) {
+          setCurrentWeek(merged.weeks[merged.weeks.length - 1].weekNumber);
+        }
+      }
+
+      setLastSyncedAt(new Date());
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown sync error.';
+      setSyncError(message);
+      console.error('Gist load failed:', message);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [appData]);
+
+  // ── Persist to localStorage + schedule debounced auto-sync ─
+
   useEffect(() => {
     saveToStorage(appData);
-  }, [appData]);
+
+    // Schedule a debounced auto-sync if a PAT is configured
+    if (appData.settings.githubPAT) {
+      // Clear any previously scheduled sync
+      if (autoSyncTimerRef.current) {
+        clearTimeout(autoSyncTimerRef.current);
+      }
+
+      autoSyncTimerRef.current = setTimeout(() => {
+        // Fire-and-forget — errors are captured in syncError state
+        void syncToGist();
+      }, AUTO_SYNC_DELAY_MS);
+    }
+
+    // Cleanup on unmount or before re-running the effect
+    return () => {
+      if (autoSyncTimerRef.current) {
+        clearTimeout(autoSyncTimerRef.current);
+      }
+    };
+  }, [appData, syncToGist]);
+
+  // ── On mount: pull from Gist if credentials exist ─────────
+
+  useEffect(() => {
+    if (hasLoadedFromGistRef.current) return;
+    hasLoadedFromGistRef.current = true;
+
+    const data = loadFromStorage();
+    if (data.settings.githubPAT && data.settings.gistId) {
+      void loadFromGist();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Existing mutation callbacks ───────────────────────────
 
   const setAppData = useCallback((data: AppData) => {
     setAppDataState(data);
@@ -218,6 +374,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         importData,
         currentWeek,
         setCurrentWeek,
+        isSyncing,
+        lastSyncedAt,
+        syncError,
+        syncToGist,
+        loadFromGist,
       }}
     >
       {children}

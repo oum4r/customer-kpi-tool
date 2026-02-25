@@ -1,7 +1,8 @@
-import { useState, useRef, useMemo, type ChangeEvent } from 'react';
+import { useState, useRef, useMemo, useCallback, type ChangeEvent } from 'react';
 import { useAppData } from '../../hooks/useAppData';
 import type { MessageTone } from '../../types';
 import { stripEmployeeNumber } from '../../engine/nameUtils';
+import { testConnection } from '../../engine/gistStorage';
 
 /**
  * Full settings page with sections for period configuration,
@@ -17,6 +18,11 @@ export function Settings() {
     resetPeriod,
     exportData,
     importData,
+    isSyncing,
+    lastSyncedAt,
+    syncError,
+    syncToGist,
+    loadFromGist,
   } = useAppData();
 
   // ---- Period configuration local state ----
@@ -33,6 +39,33 @@ export function Settings() {
   // ---- Preferences ----
   const [showTrend, setShowTrend] = useState(appData.settings.showTrendIndicators);
   const [messageTone, setMessageTone] = useState<MessageTone>(appData.settings.messageTone);
+
+  // ---- Cloud Sync local state ----
+  const [patInput, setPatInput] = useState(appData.settings.githubPAT ?? '');
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connected' | 'failed'>('idle');
+
+  const formatRelativeTime = useCallback((date: Date | string): string => {
+    const diff = Date.now() - (date instanceof Date ? date.getTime() : new Date(date).getTime());
+    const seconds = Math.floor(diff / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  }, []);
+
+  const handleSaveAndTest = async () => {
+    updateSettings({ ...appData.settings, githubPAT: patInput });
+    setConnectionStatus('idle');
+    try {
+      const ok = await testConnection(patInput);
+      setConnectionStatus(ok ? 'connected' : 'failed');
+    } catch {
+      setConnectionStatus('failed');
+    }
+  };
 
   // ---- Management names ----
   const managementNames = appData.settings.managementNames ?? [];
@@ -308,6 +341,83 @@ export function Settings() {
             <option value="neutral">Neutral</option>
             <option value="coaching">Coaching</option>
           </select>
+        </div>
+      </section>
+
+      {/* ---- Cloud Sync ---- */}
+      <section className={sectionClass}>
+        <div>
+          <h2 className="text-base font-semibold text-gray-800">Cloud Sync</h2>
+          <p className="text-xs text-gray-500">
+            Sync your data to GitHub so it persists across browsers and devices.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="githubPAT" className={labelClass}>
+            GitHub Personal Access Token
+          </label>
+          <input
+            id="githubPAT"
+            type="password"
+            className={inputClass}
+            placeholder="ghp_xxxxxxxxxxxx"
+            value={patInput}
+            onChange={(e) => {
+              setPatInput(e.target.value);
+              setConnectionStatus('idle');
+            }}
+          />
+          <p className="mt-1 text-xs text-gray-400">
+            Create a token at github.com/settings/tokens with the &quot;gist&quot; scope only.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" className={btnPrimary} onClick={handleSaveAndTest}>
+            Save &amp; Test
+          </button>
+          <button
+            type="button"
+            className={btnSecondary}
+            disabled={isSyncing || !appData.settings.githubPAT}
+            onClick={syncToGist}
+          >
+            Sync Now
+          </button>
+          <button
+            type="button"
+            className={btnSecondary}
+            disabled={isSyncing || !appData.settings.githubPAT}
+            onClick={loadFromGist}
+          >
+            Load from Cloud
+          </button>
+
+          {connectionStatus === 'connected' && (
+            <span className="text-sm font-medium text-green-600">Connected &#x2713;</span>
+          )}
+          {connectionStatus === 'failed' && (
+            <span className="text-sm font-medium text-red-600">Failed &#x2717;</span>
+          )}
+        </div>
+
+        {/* Status display */}
+        <div className="space-y-1">
+          {isSyncing && (
+            <p className="text-sm text-blue-600 animate-pulse">Syncing...</p>
+          )}
+          {syncError && (
+            <p className="text-sm text-red-600">{syncError}</p>
+          )}
+          {!isSyncing && lastSyncedAt && (
+            <p className="text-xs text-gray-500">
+              Last synced: {formatRelativeTime(lastSyncedAt)}
+            </p>
+          )}
+          {!isSyncing && !lastSyncedAt && !syncError && !appData.settings.githubPAT && (
+            <p className="text-xs text-gray-400">Not connected</p>
+          )}
         </div>
       </section>
 

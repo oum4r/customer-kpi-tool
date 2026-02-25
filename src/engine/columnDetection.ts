@@ -86,9 +86,15 @@ export function autoDetectColumn(fieldKey: string, columns: string[]): string | 
 
 /**
  * Attempt to determine the dataset type from column names.
+ * Checks for known PowerBI column names first, then falls back to fuzzy detection.
  * Returns null if ambiguous or unrecognisable.
  */
 export function detectDatasetType(columns: string[]): DatasetType | null {
+  // Check for known PowerBI Digital Receipts columns first
+  const hasDigitalReceipts = columns.includes('Digital Receipts');
+  const hasTotalReceipts = columns.includes('Total Receipts');
+  if (hasDigitalReceipts && hasTotalReceipts) return 'digitalReceipts';
+
   const normCols = columns.map((c) => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
   // Digital Receipts signature: has "captured" AND "transaction" columns
@@ -104,13 +110,31 @@ export function detectDatasetType(columns: string[]): DatasetType | null {
 }
 
 // ============================================================
-// Full mapping resolution (saved → fuzzy fallback)
+// Hardcoded PowerBI export mappings
+// ============================================================
+
+/**
+ * Known column names from standard PowerBI exports.
+ * These are tried FIRST so non-technical users never see a mapping screen.
+ */
+const HARDCODED_MAPPINGS: Partial<Record<DatasetType, Record<string, string>>> = {
+  digitalReceipts: {
+    name: 'Employee Name & No',
+    captured: 'Digital Receipts',
+    totalTransactions: 'Total Receipts',
+  },
+  // OIS: handled by pdfParser directly — no column mapping needed
+};
+
+// ============================================================
+// Full mapping resolution (hardcoded → saved → fuzzy fallback)
 // ============================================================
 
 /**
  * Try to fully resolve column mappings for a given dataset type:
- * 1. If a saved mapping exists and all columns are present, use it.
- * 2. Otherwise, fuzzy-detect each required field.
+ * 1. Try hardcoded PowerBI mappings (standard exports).
+ * 2. If a saved mapping exists and all columns are present, use it.
+ * 3. Otherwise, fuzzy-detect each required field.
  * Returns the complete mapping if all required fields resolve, null otherwise.
  */
 export function resolveMapping(
@@ -120,14 +144,21 @@ export function resolveMapping(
   const fields = REQUIRED_FIELDS[datasetType];
   if (fields.length === 0) return {};
 
-  // Try saved mapping first
+  // 1. Try hardcoded PowerBI mapping first
+  const hardcoded = HARDCODED_MAPPINGS[datasetType];
+  if (hardcoded) {
+    const allPresent = Object.values(hardcoded).every((col) => columns.includes(col));
+    if (allPresent) return hardcoded;
+  }
+
+  // 2. Try saved mapping from localStorage
   const saved = loadSavedMapping(datasetType);
   if (saved) {
     const allPresent = Object.values(saved).every((col) => columns.includes(col));
     if (allPresent) return saved;
   }
 
-  // Fall back to fuzzy detection
+  // 3. Fall back to fuzzy detection
   const detected: Record<string, string> = {};
   for (const field of fields) {
     const match = autoDetectColumn(field.key, columns);

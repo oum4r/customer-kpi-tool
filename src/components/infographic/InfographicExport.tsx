@@ -10,9 +10,13 @@ import type { ComputedKPIs, TrendData, RAGStatus } from '../../types';
 // Constants
 // ============================================================
 
-const INFOGRAPHIC_W = 1080;
-const INFOGRAPHIC_H = 1920;
+const PORTRAIT_W = 1080;
+const PORTRAIT_H = 1920;
+const LANDSCAPE_W = 1920;
+const LANDSCAPE_H = 1080;
 const FONT_FAMILY = "'Segoe UI', Arial, sans-serif";
+
+type InfographicFormat = 'portrait' | 'landscape';
 
 // ============================================================
 // Helper Components (inline-styled for html2canvas reliability)
@@ -56,21 +60,21 @@ function TrendArrow({ trend, delta }: { trend: string | null; delta: number | nu
 // Section builders (pure inline styles)
 // ============================================================
 
-function HeaderSection({ weekNumber, periodName }: { weekNumber: number; periodName: string }) {
+function HeaderSection({ weekNumber, periodName, slim }: { weekNumber: number; periodName: string; slim?: boolean }) {
   return (
     <div
       style={{
         backgroundColor: '#1e3a5f',
         color: '#ffffff',
-        padding: '40px 48px 32px',
+        padding: slim ? '18px 32px 14px' : '40px 48px 32px',
         textAlign: 'center',
         fontFamily: FONT_FAMILY,
       }}
     >
-      <div style={{ fontSize: 38, fontWeight: 700, letterSpacing: 0.5 }}>
+      <div style={{ fontSize: slim ? 28 : 38, fontWeight: 700, letterSpacing: 0.5 }}>
         Customer KPI Update
       </div>
-      <div style={{ fontSize: 22, fontWeight: 400, marginTop: 8, opacity: 0.9 }}>
+      <div style={{ fontSize: slim ? 17 : 22, fontWeight: 400, marginTop: slim ? 4 : 8, opacity: 0.9 }}>
         Week {weekNumber} | {periodName}
       </div>
     </div>
@@ -165,11 +169,11 @@ function KPICardsSection({ kpis }: { kpis: ComputedKPIs }) {
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, fontSize }: { children: React.ReactNode; fontSize?: number }) {
   return (
     <div
       style={{
-        fontSize: 18,
+        fontSize: fontSize ?? 18,
         fontWeight: 700,
         color: '#1e3a5f',
         padding: '0 32px',
@@ -407,6 +411,83 @@ function TrendChartsSection({ trendData }: { trendData: TrendData }) {
   );
 }
 
+/** Landscape variant: 3 trend charts stacked vertically */
+function TrendChartsSectionVertical({ trendData }: { trendData: TrendData }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 0' }}>
+      <div>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#3b82f6',
+            marginBottom: 2,
+            textAlign: 'center',
+            fontFamily: FONT_FAMILY,
+          }}
+        >
+          CNL Sign-Ups
+        </div>
+        <TrendChart
+          title="CNL"
+          weeks={trendData.weeks}
+          values={trendData.cnlValues}
+          target={trendData.cnlTarget}
+          colour="#3b82f6"
+          unit=""
+          compact
+        />
+      </div>
+      <div>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#8b5cf6',
+            marginBottom: 2,
+            textAlign: 'center',
+            fontFamily: FONT_FAMILY,
+          }}
+        >
+          Digital Receipts
+        </div>
+        <TrendChart
+          title="Digital Receipts"
+          weeks={trendData.weeks}
+          values={trendData.digitalValues}
+          target={trendData.digitalTarget}
+          colour="#8b5cf6"
+          unit="%"
+          compact
+        />
+      </div>
+      <div>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#10b981',
+            marginBottom: 2,
+            textAlign: 'center',
+            fontFamily: FONT_FAMILY,
+          }}
+        >
+          OIS Revenue
+        </div>
+        <TrendChart
+          title="OIS"
+          weeks={trendData.weeks}
+          values={trendData.oisValues}
+          target={trendData.oisTarget}
+          colour="#10b981"
+          unit="£"
+          compact
+        />
+      </div>
+    </div>
+  );
+}
+
 function TopPerformerSection({ names }: { names: string[] }) {
   if (names.length === 0) return null;
 
@@ -427,6 +508,34 @@ function TopPerformerSection({ names }: { names: string[] }) {
           KPI Hero of the Week
         </div>
         <div style={{ fontSize: 22, fontWeight: 700, color: '#78350f' }}>
+          {names.join(' & ')}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Compact KPI Hero for landscape right column */
+function TopPerformerSectionCompact({ names }: { names: string[] }) {
+  if (names.length === 0) return null;
+
+  return (
+    <div style={{ padding: '8px 0 0' }}>
+      <div
+        style={{
+          backgroundColor: '#fef3c7',
+          border: '2px solid #f59e0b',
+          borderRadius: 10,
+          padding: '12px 16px',
+          textAlign: 'center',
+          fontFamily: FONT_FAMILY,
+        }}
+      >
+        <div style={{ fontSize: 20, marginBottom: 2 }}>{'\u2b50'}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>
+          KPI Hero of the Week
+        </div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#78350f' }}>
           {names.join(' & ')}
         </div>
       </div>
@@ -458,10 +567,10 @@ function FooterSection() {
 }
 
 // ============================================================
-// Full Infographic (rendered at actual size for capture)
+// Portrait Canvas (original layout at 1080x1920)
 // ============================================================
 
-function InfographicCanvas({
+function PortraitCanvas({
   kpis,
   trendData,
 }: {
@@ -471,8 +580,8 @@ function InfographicCanvas({
   return (
     <div
       style={{
-        width: INFOGRAPHIC_W,
-        height: INFOGRAPHIC_H,
+        width: PORTRAIT_W,
+        height: PORTRAIT_H,
         backgroundColor: '#f9fafb',
         fontFamily: FONT_FAMILY,
         display: 'flex',
@@ -508,6 +617,113 @@ function InfographicCanvas({
 }
 
 // ============================================================
+// Landscape Canvas (new layout at 1920x1080)
+// ============================================================
+
+function LandscapeCanvas({
+  kpis,
+  trendData,
+}: {
+  kpis: ComputedKPIs;
+  trendData: TrendData | null;
+}) {
+  return (
+    <div
+      style={{
+        width: LANDSCAPE_W,
+        height: LANDSCAPE_H,
+        backgroundColor: '#f9fafb',
+        fontFamily: FONT_FAMILY,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header — slim variant */}
+      <HeaderSection weekNumber={kpis.weekNumber} periodName={kpis.periodName} slim />
+
+      {/* Row 1: KPI Cards (left) + Trend Charts (right) */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 16,
+          padding: '16px 32px 8px',
+          alignItems: 'stretch',
+        }}
+      >
+        {/* Left: KPI Cards stacked in a column within a row */}
+        <div style={{ flex: '1 1 0', display: 'flex', gap: 12 }}>
+          <KPICard
+            title="CNL Sign-Ups"
+            valueLabel={`${kpis.cnl.signUps}/${kpis.cnl.target}`}
+            percentage={kpis.cnl.percentage}
+            rag={kpis.cnl.rag}
+            trend={kpis.cnl.trend}
+            delta={kpis.cnl.delta}
+          />
+          <KPICard
+            title="Digital Receipts"
+            valueLabel={`${Math.round(kpis.digitalReceipts.storePercentage)}%`}
+            percentage={
+              kpis.digitalReceipts.target > 0
+                ? (kpis.digitalReceipts.storePercentage / kpis.digitalReceipts.target) * 100
+                : 0
+            }
+            rag={kpis.digitalReceipts.rag}
+            trend={kpis.digitalReceipts.trend}
+            delta={kpis.digitalReceipts.delta}
+          />
+          <KPICard
+            title="OIS Revenue"
+            valueLabel={`£${kpis.ois.storeTotal}/£${kpis.ois.target}`}
+            percentage={
+              kpis.ois.target > 0 ? (kpis.ois.storeTotal / kpis.ois.target) * 100 : 0
+            }
+            rag={kpis.ois.rag}
+            trend={kpis.ois.trend}
+            delta={kpis.ois.delta}
+          />
+        </div>
+
+        {/* Right: Trend charts stacked vertically */}
+        {trendData && <TrendChartsSectionVertical trendData={trendData} />}
+      </div>
+
+      {/* Row 2: Leaderboards side-by-side */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 16,
+          padding: '8px 0 0',
+          flex: 1,
+          minHeight: 0,
+          alignItems: 'flex-start',
+        }}
+      >
+        {/* Left column: Digital Receipts Leaderboard */}
+        <div style={{ flex: '1 1 0', minWidth: 0 }}>
+          <DigitalReceiptsLeaderboard kpis={kpis} />
+        </div>
+
+        {/* Right column: OIS Leaderboard + KPI Hero below */}
+        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <OISLeaderboard kpis={kpis} />
+          <div style={{ padding: '0 32px' }}>
+            <TopPerformerSectionCompact names={kpis.topPerformers} />
+          </div>
+        </div>
+      </div>
+
+      {/* Spacer to push footer down */}
+      <div style={{ flex: '0 0 auto' }} />
+
+      {/* Footer */}
+      <FooterSection />
+    </div>
+  );
+}
+
+// ============================================================
 // Main Export Component
 // ============================================================
 
@@ -519,17 +735,20 @@ export function InfographicExport() {
   const previewWrapperRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewScale, setPreviewScale] = useState(0.35);
+  const [format, setFormat] = useState<InfographicFormat>('portrait');
+
+  const canvasW = format === 'portrait' ? PORTRAIT_W : LANDSCAPE_W;
+  const canvasH = format === 'portrait' ? PORTRAIT_H : LANDSCAPE_H;
 
   // ---- Responsive preview scale ----
   const updateScale = useCallback(() => {
     const wrapper = previewWrapperRef.current;
     if (!wrapper) return;
-    // Available width minus some padding
     const availableW = wrapper.clientWidth;
-    // Cap at 0.65 so it doesn't get too large on ultra-wide screens
-    const scale = Math.min(0.65, Math.max(0.25, availableW / INFOGRAPHIC_W));
+    const w = format === 'portrait' ? PORTRAIT_W : LANDSCAPE_W;
+    const scale = Math.min(0.65, Math.max(0.25, availableW / w));
     setPreviewScale(scale);
-  }, []);
+  }, [format]);
 
   useEffect(() => {
     updateScale();
@@ -548,12 +767,12 @@ export function InfographicExport() {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
-        width: INFOGRAPHIC_W,
-        height: INFOGRAPHIC_H,
+        width: canvasW,
+        height: canvasH,
       });
 
       const link = document.createElement('a');
-      link.download = `kpi-update-week-${kpis?.weekNumber ?? 'unknown'}.png`;
+      link.download = `kpi-update-week-${kpis?.weekNumber ?? 'unknown'}-${format}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (err) {
@@ -573,12 +792,40 @@ export function InfographicExport() {
     );
   }
 
-  const previewW = INFOGRAPHIC_W * previewScale;
-  const previewH = INFOGRAPHIC_H * previewScale;
+  const previewW = canvasW * previewScale;
+  const previewH = canvasH * previewScale;
+
+  const CanvasComponent = format === 'portrait' ? PortraitCanvas : LandscapeCanvas;
 
   return (
     <div className="space-y-6 p-4" ref={previewWrapperRef}>
       <h1 className="text-xl font-bold text-gray-900">Infographic</h1>
+
+      {/* Format toggle */}
+      <div className="flex items-center justify-center gap-1 rounded-lg bg-gray-100 p-1 mx-auto max-w-xs">
+        <button
+          type="button"
+          onClick={() => setFormat('portrait')}
+          className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            format === 'portrait'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          {'\ud83d\udcf1'} Mobile
+        </button>
+        <button
+          type="button"
+          onClick={() => setFormat('landscape')}
+          className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            format === 'landscape'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          {'\ud83d\udda5\ufe0f'} Desktop
+        </button>
+      </div>
 
       {/* On-screen preview (responsively scaled) */}
       <div
@@ -594,11 +841,11 @@ export function InfographicExport() {
           style={{
             transform: `scale(${previewScale})`,
             transformOrigin: 'top left',
-            width: INFOGRAPHIC_W,
-            height: INFOGRAPHIC_H,
+            width: canvasW,
+            height: canvasH,
           }}
         >
-          <InfographicCanvas kpis={kpis} trendData={trendData} />
+          <CanvasComponent kpis={kpis} trendData={trendData} />
         </div>
       </div>
 
@@ -647,13 +894,13 @@ export function InfographicExport() {
           position: 'absolute',
           left: -9999,
           top: 0,
-          width: INFOGRAPHIC_W,
-          height: INFOGRAPHIC_H,
+          width: canvasW,
+          height: canvasH,
           overflow: 'hidden',
           pointerEvents: 'none',
         }}
       >
-        <InfographicCanvas kpis={kpis} trendData={trendData} />
+        <CanvasComponent kpis={kpis} trendData={trendData} />
       </div>
     </div>
   );
