@@ -1,8 +1,3 @@
-declare module 'pdfjs-dist/build/pdf.worker.min.mjs?url' {
-  const url: string;
-  export default url;
-}
-
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import type { ParsedRow } from '../types';
