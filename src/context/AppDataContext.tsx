@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import type { AppData, WeekData, Targets, Settings, PeriodConfig } from '../types';
-import { MOCK_APP_DATA } from '../mock/mockData';
+import { DEFAULT_TARGETS, DEFAULT_SETTINGS, DEFAULT_PERIOD_CONFIG } from '../mock/mockData';
 import { readStoreData, writeStoreData } from '../engine/supabaseStorage';
 
 // ============================================================
@@ -43,8 +43,17 @@ const STORAGE_KEY = 'kpi-tool-app-data';
 /** Debounce delay (ms) before auto-syncing to the cloud after a local save */
 const AUTO_SYNC_DELAY_MS = 1000;
 
+/** Default empty state for new users (no mock data). */
+const EMPTY_APP_DATA: AppData = {
+  period: DEFAULT_PERIOD_CONFIG,
+  weeks: [],
+  targets: DEFAULT_TARGETS,
+  settings: DEFAULT_SETTINGS,
+  columnMappings: {},
+};
+
 /**
- * Load persisted AppData from localStorage, falling back to mock data.
+ * Load persisted AppData from localStorage, falling back to empty state.
  */
 function loadFromStorage(): AppData {
   try {
@@ -63,7 +72,7 @@ function loadFromStorage(): AppData {
   } catch {
     // Corrupted data — fall back
   }
-  return MOCK_APP_DATA;
+  return EMPTY_APP_DATA;
 }
 
 /**

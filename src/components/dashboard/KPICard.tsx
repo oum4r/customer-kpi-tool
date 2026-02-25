@@ -69,40 +69,40 @@ export function KPICard({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       {/* Header row: title + trend */}
       <div className="flex items-start justify-between">
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+        <h3 className="text-base font-semibold text-gray-700">{title}</h3>
         {showTrend && trend && (
           <span className={`flex items-center gap-1 text-sm font-medium ${trendColourClass}`}>
-            <span className="text-base">{trend}</span>
+            <span className="text-lg">{trend}</span>
             <span>{formatDelta()}</span>
           </span>
         )}
       </div>
 
       {/* Value display */}
-      <p className="mt-2 text-lg font-bold text-gray-900">{formatValue()}</p>
+      <p className="mt-2 text-2xl font-bold text-gray-900">{formatValue()}</p>
 
       {/* Progress bar */}
       <div className="mt-3">
-        <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
+        <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
           <div
             className={`h-full rounded-full transition-all duration-500 ${ragToBgTailwindClass(rag)}`}
             style={{ width: `${clampedPercentage}%` }}
           />
         </div>
-        <div className="mt-1 flex items-center justify-between">
-          <span className={`text-xs font-medium ${ragToTailwindClass(rag)}`}>
+        <div className="mt-1.5 flex items-center justify-between">
+          <span className={`text-sm font-medium ${ragToTailwindClass(rag)}`}>
             {percentage}%
           </span>
-          <span className="text-xs text-gray-400">Target: 100%</span>
+          <span className="text-sm text-gray-400">Target: 100%</span>
         </div>
       </div>
 
       {/* Remaining-to-target callout */}
       {isBelow && (
-        <p className="mt-2 text-xs text-gray-500 italic">
+        <p className="mt-2 text-sm text-gray-500 italic">
           {formatRemaining()}
         </p>
       )}

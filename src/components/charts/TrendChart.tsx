@@ -148,8 +148,8 @@ export function TrendChart({
   const chartHeight = height ?? 300;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">{title}</h3>
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
+      <h3 className="mb-3 text-base font-semibold text-gray-700">{title}</h3>
 
       <ResponsiveContainer width="100%" height={chartHeight}>
         <LineChart
@@ -163,7 +163,7 @@ export function TrendChart({
           />
           <XAxis
             dataKey="week"
-            tick={{ fontSize: 12, fill: '#6b7280' }}
+            tick={{ fontSize: 13, fill: '#6b7280' }}
             axisLine={{ stroke: '#d1d5db' }}
             tickLine={false}
             label={{
@@ -171,13 +171,13 @@ export function TrendChart({
               position: 'insideBottomRight',
               offset: -10,
               fill: '#9ca3af',
-              fontSize: 11,
+              fontSize: 12,
             }}
             angle={manyWeeks ? -35 : 0}
             textAnchor={manyWeeks ? 'end' : 'middle'}
           />
           <YAxis
-            tick={{ fontSize: 12, fill: '#6b7280' }}
+            tick={{ fontSize: 13, fill: '#6b7280' }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v: number) => formatValue(v, unit)}
@@ -186,7 +186,7 @@ export function TrendChart({
             formatter={(value: number | undefined) => [formatValue(value ?? 0, unit), 'Value']}
             labelFormatter={(label: unknown) => `${label}`}
             contentStyle={{
-              fontSize: 12,
+              fontSize: 13,
               borderRadius: 8,
               border: '1px solid #e5e7eb',
             }}

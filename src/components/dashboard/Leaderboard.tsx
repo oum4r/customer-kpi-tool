@@ -20,16 +20,16 @@ export interface LeaderboardProps {
 export function Leaderboard({ title, columns, data, highlightTopPerformer = true }: LeaderboardProps) {
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="text-base font-semibold text-gray-700">{title}</h3>
         <p className="mt-2 text-sm text-gray-400">No data available.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">{title}</h3>
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <h3 className="mb-3 text-base font-semibold text-gray-700">{title}</h3>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[320px] text-left text-sm">
@@ -38,7 +38,7 @@ export function Leaderboard({ title, columns, data, highlightTopPerformer = true
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500"
+                  className="whitespace-nowrap px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-500"
                 >
                   {col.label}
                 </th>
@@ -73,7 +73,7 @@ export function Leaderboard({ title, columns, data, highlightTopPerformer = true
                       return (
                         <td
                           key={col.key}
-                          className="whitespace-nowrap px-3 py-2 text-xs font-normal text-gray-400"
+                          className="whitespace-nowrap px-3 py-2.5 text-sm font-normal text-gray-400"
                         >
                           Mgmt
                         </td>
@@ -90,7 +90,7 @@ export function Leaderboard({ title, columns, data, highlightTopPerformer = true
                     return (
                       <td
                         key={col.key}
-                        className={`whitespace-nowrap px-3 py-2 ${isManagement ? 'text-gray-400' : 'text-gray-800'}`}
+                        className={`whitespace-nowrap px-3 py-2.5 ${isManagement ? 'text-gray-400' : 'text-gray-800'}`}
                       >
                         {showTrophy && (
                           <span className="mr-1" role="img" aria-label="trophy">

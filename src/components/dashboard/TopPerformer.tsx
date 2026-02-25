@@ -15,24 +15,24 @@ export function TopPerformer({ names }: TopPerformerProps) {
   const displayNames = names.join(' & ');
 
   return (
-    <div className="rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 p-5 text-center shadow-md">
+    <div className="rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 p-6 text-center shadow-md">
       {/* Trophy / star icons */}
       <div className="text-4xl" role="img" aria-label="celebration">
         🏆 ⭐ 🏆
       </div>
 
       {/* Heading */}
-      <h3 className="mt-2 text-sm font-semibold uppercase tracking-wider text-amber-900">
+      <h3 className="mt-2 text-base font-semibold uppercase tracking-wider text-amber-900">
         KPI Hero of the Week
       </h3>
 
       {/* Name(s) */}
-      <p className="mt-1 text-2xl font-extrabold text-amber-950">
+      <p className="mt-1 text-3xl font-extrabold text-amber-950">
         {displayNames}
       </p>
 
       {/* Subtle tagline */}
-      <p className="mt-1 text-xs font-medium text-amber-800">
+      <p className="mt-1 text-sm font-medium text-amber-800">
         Outstanding performance this week!
       </p>
     </div>

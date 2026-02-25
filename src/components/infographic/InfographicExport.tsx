@@ -24,7 +24,7 @@ type InfographicFormat = 'portrait' | 'landscape';
 
 function ProgressBar({ percentage, colour }: { percentage: number; colour: string }) {
   return (
-    <div style={{ width: '100%', height: 12, backgroundColor: '#e5e7eb', borderRadius: 6 }}>
+    <div style={{ width: '100%', height: 16, backgroundColor: '#e5e7eb', borderRadius: 8 }}>
       <div
         style={{
           width: `${Math.min(percentage, 100)}%`,
@@ -44,10 +44,10 @@ function TrendArrow({ trend, delta }: { trend: string | null; delta: number | nu
     trend === '\u2191' ? '#22c55e' : trend === '\u2193' ? '#ef4444' : '#6b7280';
 
   return (
-    <span style={{ fontSize: 16, fontWeight: 600, color: colour, marginLeft: 6 }}>
+    <span style={{ fontSize: 22, fontWeight: 600, color: colour, marginLeft: 8 }}>
       {trend}
       {delta != null && (
-        <span style={{ fontSize: 13, fontWeight: 400, marginLeft: 2 }}>
+        <span style={{ fontSize: 16, fontWeight: 400, marginLeft: 3 }}>
           {delta > 0 ? '+' : ''}
           {delta}
         </span>
@@ -66,15 +66,15 @@ function HeaderSection({ weekNumber, periodName, slim }: { weekNumber: number; p
       style={{
         backgroundColor: '#1e3a5f',
         color: '#ffffff',
-        padding: slim ? '18px 32px 14px' : '40px 48px 32px',
+        padding: slim ? '18px 32px 14px' : '48px 48px 40px',
         textAlign: 'center',
         fontFamily: FONT_FAMILY,
       }}
     >
-      <div style={{ fontSize: slim ? 28 : 38, fontWeight: 700, letterSpacing: 0.5 }}>
+      <div style={{ fontSize: slim ? 28 : 48, fontWeight: 700, letterSpacing: 0.5 }}>
         Customer KPI Update
       </div>
-      <div style={{ fontSize: slim ? 17 : 22, fontWeight: 400, marginTop: slim ? 4 : 8, opacity: 0.9 }}>
+      <div style={{ fontSize: slim ? 17 : 28, fontWeight: 400, marginTop: slim ? 4 : 10, opacity: 0.9 }}>
         Week {weekNumber} | {periodName}
       </div>
     </div>
@@ -104,20 +104,20 @@ function KPICard({
         flex: '1 1 0',
         backgroundColor: '#ffffff',
         border: '1px solid #e5e7eb',
-        borderRadius: 12,
-        padding: '20px 16px',
+        borderRadius: 14,
+        padding: '28px 24px',
         textAlign: 'center',
         fontFamily: FONT_FAMILY,
       }}
     >
-      <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+      <div style={{ fontSize: 20, fontWeight: 600, color: '#374151', marginBottom: 10 }}>
         {title}
       </div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: colour, marginBottom: 4 }}>
+      <div style={{ fontSize: 42, fontWeight: 700, color: colour, marginBottom: 6 }}>
         {valueLabel}
         <TrendArrow trend={trend} delta={delta} />
       </div>
-      <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 10 }}>
+      <div style={{ fontSize: 17, color: '#6b7280', marginBottom: 14 }}>
         {Math.round(percentage)}% of target
       </div>
       <ProgressBar percentage={percentage} colour={colour} />
@@ -130,8 +130,8 @@ function KPICardsSection({ kpis }: { kpis: ComputedKPIs }) {
     <div
       style={{
         display: 'flex',
-        gap: 16,
-        padding: '24px 32px',
+        gap: 20,
+        padding: '40px 40px',
         fontFamily: FONT_FAMILY,
       }}
     >
@@ -173,11 +173,11 @@ function SectionTitle({ children, fontSize }: { children: React.ReactNode; fontS
   return (
     <div
       style={{
-        fontSize: fontSize ?? 18,
+        fontSize: fontSize ?? 24,
         fontWeight: 700,
         color: '#1e3a5f',
-        padding: '0 32px',
-        marginBottom: 8,
+        padding: '0 40px',
+        marginBottom: 10,
         fontFamily: FONT_FAMILY,
       }}
     >
@@ -191,9 +191,9 @@ function DigitalReceiptsLeaderboard({ kpis }: { kpis: ComputedKPIs }) {
   if (entries.length === 0) return null;
 
   const thStyle: React.CSSProperties = {
-    padding: '6px 10px',
+    padding: '10px 14px',
     textAlign: 'left',
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: 600,
     color: '#374151',
     borderBottom: '2px solid #d1d5db',
@@ -201,15 +201,15 @@ function DigitalReceiptsLeaderboard({ kpis }: { kpis: ComputedKPIs }) {
   };
 
   const tdStyle: React.CSSProperties = {
-    padding: '5px 10px',
-    fontSize: 13,
+    padding: '9px 14px',
+    fontSize: 16,
     color: '#374151',
     borderBottom: '1px solid #e5e7eb',
     fontFamily: FONT_FAMILY,
   };
 
   return (
-    <div style={{ padding: '0 32px 16px' }}>
+    <div style={{ padding: '0 40px 32px' }}>
       <SectionTitle>Digital Receipts Leaderboard</SectionTitle>
       <table
         style={{
@@ -263,9 +263,9 @@ function OISLeaderboard({ kpis }: { kpis: ComputedKPIs }) {
   if (entries.length === 0) return null;
 
   const thStyle: React.CSSProperties = {
-    padding: '6px 10px',
+    padding: '10px 14px',
     textAlign: 'left',
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: 600,
     color: '#374151',
     borderBottom: '2px solid #d1d5db',
@@ -273,15 +273,15 @@ function OISLeaderboard({ kpis }: { kpis: ComputedKPIs }) {
   };
 
   const tdStyle: React.CSSProperties = {
-    padding: '5px 10px',
-    fontSize: 13,
+    padding: '9px 14px',
+    fontSize: 16,
     color: '#374151',
     borderBottom: '1px solid #e5e7eb',
     fontFamily: FONT_FAMILY,
   };
 
   return (
-    <div style={{ padding: '0 32px 16px' }}>
+    <div style={{ padding: '0 40px 32px' }}>
       <SectionTitle>OIS Leaderboard</SectionTitle>
       <table
         style={{
@@ -328,22 +328,22 @@ function OISLeaderboard({ kpis }: { kpis: ComputedKPIs }) {
 
 function TrendChartsSection({ trendData }: { trendData: TrendData }) {
   return (
-    <div style={{ padding: '8px 32px 16px' }}>
+    <div style={{ padding: '24px 40px 32px' }}>
       <SectionTitle>Trends</SectionTitle>
       <div
         style={{
           display: 'flex',
-          gap: 12,
+          gap: 16,
           justifyContent: 'space-between',
         }}
       >
         <div style={{ flex: '1 1 0', minWidth: 0 }}>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 16,
               fontWeight: 600,
               color: '#3b82f6',
-              marginBottom: 4,
+              marginBottom: 6,
               textAlign: 'center',
               fontFamily: FONT_FAMILY,
             }}
@@ -358,15 +358,16 @@ function TrendChartsSection({ trendData }: { trendData: TrendData }) {
             colour="#3b82f6"
             unit=""
             compact
+            height={220}
           />
         </div>
         <div style={{ flex: '1 1 0', minWidth: 0 }}>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 16,
               fontWeight: 600,
               color: '#8b5cf6',
-              marginBottom: 4,
+              marginBottom: 6,
               textAlign: 'center',
               fontFamily: FONT_FAMILY,
             }}
@@ -381,15 +382,16 @@ function TrendChartsSection({ trendData }: { trendData: TrendData }) {
             colour="#8b5cf6"
             unit="%"
             compact
+            height={220}
           />
         </div>
         <div style={{ flex: '1 1 0', minWidth: 0 }}>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 16,
               fontWeight: 600,
               color: '#10b981',
-              marginBottom: 4,
+              marginBottom: 6,
               textAlign: 'center',
               fontFamily: FONT_FAMILY,
             }}
@@ -404,6 +406,7 @@ function TrendChartsSection({ trendData }: { trendData: TrendData }) {
             colour="#10b981"
             unit="£"
             compact
+            height={220}
           />
         </div>
       </div>
@@ -418,7 +421,7 @@ function TrendChartsSectionVertical({ trendData }: { trendData: TrendData }) {
       <div>
         <div
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 600,
             color: '#3b82f6',
             marginBottom: 2,
@@ -441,7 +444,7 @@ function TrendChartsSectionVertical({ trendData }: { trendData: TrendData }) {
       <div>
         <div
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 600,
             color: '#8b5cf6',
             marginBottom: 2,
@@ -464,7 +467,7 @@ function TrendChartsSectionVertical({ trendData }: { trendData: TrendData }) {
       <div>
         <div
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 600,
             color: '#10b981',
             marginBottom: 2,
@@ -492,22 +495,22 @@ function TopPerformerSection({ names }: { names: string[] }) {
   if (names.length === 0) return null;
 
   return (
-    <div style={{ padding: '0 32px 16px' }}>
+    <div style={{ padding: '0 40px 32px' }}>
       <div
         style={{
           backgroundColor: '#fef3c7',
           border: '2px solid #f59e0b',
-          borderRadius: 12,
-          padding: '20px 24px',
+          borderRadius: 14,
+          padding: '28px 32px',
           textAlign: 'center',
           fontFamily: FONT_FAMILY,
         }}
       >
-        <div style={{ fontSize: 28, marginBottom: 4 }}>{'\u2b50'}</div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#92400e', marginBottom: 4 }}>
+        <div style={{ fontSize: 36, marginBottom: 6 }}>{'\u2b50'}</div>
+        <div style={{ fontSize: 18, fontWeight: 600, color: '#92400e', marginBottom: 6 }}>
           KPI Hero of the Week
         </div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#78350f' }}>
+        <div style={{ fontSize: 32, fontWeight: 700, color: '#78350f' }}>
           {names.join(' & ')}
         </div>
       </div>
@@ -531,11 +534,11 @@ function TopPerformerSectionCompact({ names }: { names: string[] }) {
           fontFamily: FONT_FAMILY,
         }}
       >
-        <div style={{ fontSize: 20, marginBottom: 2 }}>{'\u2b50'}</div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>
+        <div style={{ fontSize: 24, marginBottom: 3 }}>{'\u2b50'}</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#92400e', marginBottom: 3 }}>
           KPI Hero of the Week
         </div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#78350f' }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#78350f' }}>
           {names.join(' & ')}
         </div>
       </div>
@@ -554,12 +557,12 @@ function FooterSection() {
   return (
     <div
       style={{
-        padding: '16px 32px 24px',
+        padding: '24px 40px 40px',
         textAlign: 'center',
         fontFamily: FONT_FAMILY,
       }}
     >
-      <div style={{ fontSize: 11, color: '#9ca3af' }}>
+      <div style={{ fontSize: 14, color: '#9ca3af' }}>
         Generated with Customer KPI Tool &middot; {dateStr}
       </div>
     </div>
@@ -581,12 +584,10 @@ function PortraitCanvas({
     <div
       style={{
         width: PORTRAIT_W,
-        height: PORTRAIT_H,
         backgroundColor: '#f9fafb',
         fontFamily: FONT_FAMILY,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
       }}
     >
       {/* Section 1 — Header */}
@@ -606,9 +607,6 @@ function PortraitCanvas({
 
       {/* Section 6 — Top Performer */}
       <TopPerformerSection names={kpis.topPerformers} />
-
-      {/* Spacer to push footer down */}
-      <div style={{ flex: 1 }} />
 
       {/* Section 7 — Footer */}
       <FooterSection />
@@ -736,9 +734,24 @@ export function InfographicExport() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewScale, setPreviewScale] = useState(0.35);
   const [format, setFormat] = useState<InfographicFormat>('portrait');
+  const [measuredPortraitH, setMeasuredPortraitH] = useState(PORTRAIT_H);
 
   const canvasW = format === 'portrait' ? PORTRAIT_W : LANDSCAPE_W;
-  const canvasH = format === 'portrait' ? PORTRAIT_H : LANDSCAPE_H;
+  const canvasH = format === 'portrait' ? measuredPortraitH : LANDSCAPE_H;
+
+  // ---- Measure actual portrait content height ----
+  useEffect(() => {
+    if (format !== 'portrait') return;
+    // Allow a frame for the off-screen canvas to render before measuring
+    const frame = requestAnimationFrame(() => {
+      const el = containerRef.current;
+      if (el) {
+        const h = el.scrollHeight;
+        if (h > 0) setMeasuredPortraitH(h);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [format, kpis, trendData]);
 
   // ---- Responsive preview scale ----
   const updateScale = useCallback(() => {
@@ -763,12 +776,16 @@ export function InfographicExport() {
 
     setIsGenerating(true);
     try {
+      // For portrait, capture the actual content height; for landscape, use the fixed height
+      const captureW = format === 'portrait' ? container.scrollWidth : LANDSCAPE_W;
+      const captureH = format === 'portrait' ? container.scrollHeight : LANDSCAPE_H;
+
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
-        width: canvasW,
-        height: canvasH,
+        width: captureW,
+        height: captureH,
       });
 
       const link = document.createElement('a');
@@ -895,8 +912,7 @@ export function InfographicExport() {
           left: -9999,
           top: 0,
           width: canvasW,
-          height: canvasH,
-          overflow: 'hidden',
+          ...(format === 'landscape' ? { height: LANDSCAPE_H, overflow: 'hidden' } : {}),
           pointerEvents: 'none',
         }}
       >
