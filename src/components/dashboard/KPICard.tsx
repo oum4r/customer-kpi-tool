@@ -37,7 +37,7 @@ export function KPICard({
     if (unit === '%') {
       return `${value}% / ${target}%`;
     }
-    if (unit.startsWith('\u00a3') || unit.startsWith('£')) {
+    if (unit.startsWith('£') || unit.startsWith('£')) {
       return `£${value} / £${target}`;
     }
     return `${value} / ${target} ${unit}`;
@@ -48,7 +48,7 @@ export function KPICard({
     if (unit === '%') {
       return `${remaining}% more needed`;
     }
-    if (unit.startsWith('\u00a3') || unit.startsWith('£')) {
+    if (unit.startsWith('£') || unit.startsWith('£')) {
       return `£${remaining} more needed`;
     }
     return `${remaining} more ${unit} to hit target`;

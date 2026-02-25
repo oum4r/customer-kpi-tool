@@ -153,7 +153,7 @@ function KPICardsSection({ kpis }: { kpis: ComputedKPIs }) {
       />
       <KPICard
         title="OIS Revenue"
-        valueLabel={`\u00a3${kpis.ois.storeTotal}/\u00a3${kpis.ois.target}`}
+        valueLabel={`£${kpis.ois.storeTotal}/£${kpis.ois.target}`}
         percentage={
           kpis.ois.target > 0 ? (kpis.ois.storeTotal / kpis.ois.target) * 100 : 0
         }
@@ -398,7 +398,7 @@ function TrendChartsSection({ trendData }: { trendData: TrendData }) {
             values={trendData.oisValues}
             target={trendData.oisTarget}
             colour="#10b981"
-            unit="\u00a3"
+            unit="£"
             compact
           />
         </div>

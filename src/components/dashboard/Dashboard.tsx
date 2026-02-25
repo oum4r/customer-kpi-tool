@@ -32,8 +32,8 @@ const oisColumns: LeaderboardColumn[] = [
   { key: 'name', label: 'Name' },
   {
     key: 'revenue',
-    label: 'Revenue (\u00a3)',
-    format: (v) => `\u00a3${v}`,
+    label: 'Revenue (£)',
+    format: (v) => `£${v}`,
   },
 ];
 
@@ -113,7 +113,7 @@ export function Dashboard() {
           title="Order in Store"
           value={kpis.ois.storeTotal}
           target={kpis.ois.target}
-          unit="\u00a3"
+          unit="£"
           percentage={Math.round((kpis.ois.storeTotal / kpis.ois.target) * 100)}
           rag={kpis.ois.rag}
           trend={kpis.ois.trend}
@@ -171,7 +171,7 @@ export function Dashboard() {
               weeks={trendData.weeks}
               values={trendData.oisValues}
               target={trendData.oisTarget}
-              unit="\u00a3"
+              unit="£"
               colour="#10b981"
               compact
             />

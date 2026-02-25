@@ -257,7 +257,7 @@ export function Settings() {
           </div>
           <div>
             <label htmlFor="oisTarget" className={labelClass}>
-              OIS Weekly Target ({'\u00a3'})
+              OIS Weekly Target (£)
             </label>
             <input
               id="oisTarget"
