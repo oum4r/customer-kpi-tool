@@ -2,7 +2,6 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import html2canvas from 'html2canvas';
 import { useComputedKPIs } from '../../hooks/useComputedKPIs';
 import { useTrendData } from '../../hooks/useTrendData';
-import { useAppData } from '../../hooks/useAppData';
 import { TrendChart } from '../charts/TrendChart';
 import { ragToColour } from '../../engine/ragStatus';
 import type { ComputedKPIs, TrendData, RAGStatus } from '../../types';
@@ -515,7 +514,6 @@ function InfographicCanvas({
 export function InfographicExport() {
   const kpis = useComputedKPIs();
   const trendData = useTrendData();
-  const { appData } = useAppData();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const previewWrapperRef = useRef<HTMLDivElement>(null);

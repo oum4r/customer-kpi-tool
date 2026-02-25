@@ -183,8 +183,8 @@ export function TrendChart({
             tickFormatter={(v: number) => formatValue(v, unit)}
           />
           <Tooltip
-            formatter={(value: number) => [formatValue(value, unit), 'Value']}
-            labelFormatter={(label: string) => label}
+            formatter={(value: number) => [formatValue(value, unit), 'Value'] as [string, string]}
+            labelFormatter={(label: string) => `${label}`}
             contentStyle={{
               fontSize: 12,
               borderRadius: 8,

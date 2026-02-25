@@ -127,13 +127,13 @@ export function Dashboard() {
         <Leaderboard
           title="Digital Receipts Leaderboard"
           columns={digitalReceiptsColumns}
-          data={kpis.digitalReceipts.leaderboard}
+          data={kpis.digitalReceipts.leaderboard as Record<string, string | number | boolean | null>[]}
           highlightTopPerformer
         />
         <Leaderboard
           title="Order in Store Leaderboard"
           columns={oisColumns}
-          data={kpis.ois.leaderboard}
+          data={kpis.ois.leaderboard as Record<string, string | number | boolean | null>[]}
           highlightTopPerformer
         />
       </section>
