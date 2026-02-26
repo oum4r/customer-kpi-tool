@@ -11,6 +11,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 export interface PdfParseResult {
   rows: ParsedRow[];
   detectedWeekNumber: number | null;
+  detectedStoreNumber: string | null;
 }
 
 // ============================================================
@@ -179,7 +180,7 @@ export async function parsePdf(file: File): Promise<PdfParseResult> {
   }
 
   if (allItems.length === 0) {
-    return { rows: [], detectedWeekNumber: null };
+    return { rows: [], detectedWeekNumber: null, detectedStoreNumber: null };
   }
 
   // ----------------------------------------------------------
@@ -197,6 +198,13 @@ export async function parsePdf(file: File): Promise<PdfParseResult> {
     detectedWeekNumber = parseInt(digits.slice(-2), 10);
   }
 
+  // Detect store number — appears as "2154 Hounslow Treaty" (4-digit code + store name)
+  let detectedStoreNumber: string | null = null;
+  const storeMatch = fullText.match(/\b(\d{4})\s+[A-Z][a-z]/);
+  if (storeMatch) {
+    detectedStoreNumber = storeMatch[1];
+  }
+
   // ----------------------------------------------------------
   // Step 3: Isolate "Last Week" section items
   // ----------------------------------------------------------
@@ -208,7 +216,7 @@ export async function parsePdf(file: File): Promise<PdfParseResult> {
 
   if (lastWeekIndex === -1) {
     // No "Last Week" section found at all
-    return { rows: [], detectedWeekNumber };
+    return { rows: [], detectedWeekNumber, detectedStoreNumber };
   }
 
   // The section header's page and Y give us the starting boundary.
@@ -262,7 +270,7 @@ export async function parsePdf(file: File): Promise<PdfParseResult> {
   }
 
   if (sectionItems.length === 0) {
-    return { rows: [], detectedWeekNumber };
+    return { rows: [], detectedWeekNumber, detectedStoreNumber };
   }
 
   // ----------------------------------------------------------
@@ -282,7 +290,7 @@ export async function parsePdf(file: File): Promise<PdfParseResult> {
 
   if (headerRowIndex === -1) {
     // Could not find column headers
-    return { rows: [], detectedWeekNumber };
+    return { rows: [], detectedWeekNumber, detectedStoreNumber };
   }
 
   // Build column positions from the header row.
@@ -390,7 +398,7 @@ export async function parsePdf(file: File): Promise<PdfParseResult> {
     parsedRows.push(parsedRow);
   }
 
-  return { rows: parsedRows, detectedWeekNumber };
+  return { rows: parsedRows, detectedWeekNumber, detectedStoreNumber };
 }
 
 /**

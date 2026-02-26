@@ -81,6 +81,39 @@ function stripNonDataRows(rows: ParsedRow[]): ParsedRow[] {
 }
 
 /**
+ * Extract a 4-digit store number from parsed rows.
+ * Checks:
+ * 1. A "Store" / "Store Number" column in data rows
+ * 2. "Applied filters" metadata rows that reference a store
+ */
+function extractStoreFromRows(rows: ParsedRow[]): string | null {
+  // 1. Check for a "Store" column
+  for (const row of rows) {
+    const storeVal = row['Store'] ?? row['store'] ?? row['Store Number'];
+    if (storeVal != null) {
+      const str = String(storeVal).trim();
+      const match = str.match(/^(\d{4})/);
+      if (match) return match[1];
+    }
+  }
+
+  // 2. Check "Applied filters" metadata rows
+  for (const row of rows) {
+    for (const val of Object.values(row)) {
+      const str = String(val);
+      if (/Applied\s+filters/i.test(str)) {
+        const storeMatch = str.match(/Store\s+is\s+(\d{4})/i);
+        if (storeMatch) return storeMatch[1];
+        const numMatch = str.match(/\b(\d{4})\b/);
+        if (numMatch) return numMatch[1];
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Transform parsed rows + column mapping into a WeekData object.
  * Rows are grouped by weekNumber. Returns an array of WeekData (one per unique week).
  */
@@ -155,7 +188,7 @@ interface AutoDetectInfo {
 }
 
 export function FileUpload() {
-  const { addWeekData } = useAppData();
+  const { appData, addWeekData } = useAppData();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Flow state
@@ -263,10 +296,13 @@ export function FileUpload() {
       let rows: ParsedRow[];
       let weekFromFile: number | null = null;
 
+      let fileStoreNumber: string | null = null;
+
       if (ext === '.pdf') {
         const result = await parsePdf(file);
         rows = result.rows;
         weekFromFile = result.detectedWeekNumber;
+        fileStoreNumber = result.detectedStoreNumber;
       } else if (ext === '.csv') {
         rows = await parseCSV(file);
       } else {
@@ -276,6 +312,23 @@ export function FileUpload() {
       if (rows.length === 0) {
         setError('The file appears to be empty. No data rows were found.');
         return;
+      }
+
+      // For non-PDF files, extract store number before stripping metadata rows
+      if (!fileStoreNumber && ext !== '.pdf') {
+        fileStoreNumber = extractStoreFromRows(rows);
+      }
+
+      // Validate file store number against configured store number
+      const configuredStore = appData.settings.storeNumber;
+      if (fileStoreNumber && configuredStore && fileStoreNumber !== configuredStore) {
+        const proceed = window.confirm(
+          `This file appears to be for store ${fileStoreNumber}, but you're connected as store ${configuredStore}.\n\nSave anyway?`,
+        );
+        if (!proceed) {
+          setError(`Upload cancelled — file is for store ${fileStoreNumber}, not ${configuredStore}.`);
+          return;
+        }
       }
 
       // For non-PDF files, try to extract week number from metadata rows
@@ -370,7 +423,7 @@ export function FileUpload() {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred while parsing the file.';
       setError(message);
     }
-  }, [saveData]);
+  }, [saveData, appData.settings.storeNumber]);
 
   const handleFile = useCallback(
     async (file: File) => {
