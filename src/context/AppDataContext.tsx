@@ -30,6 +30,12 @@ export interface AppDataContextValue {
   syncToCloud: () => Promise<void>;
   /** Manually pull data from the cloud and merge into local state */
   loadFromCloud: () => Promise<void>;
+  /** Temporarily suppress auto-sync (e.g. during the connect flow) */
+  pauseAutoSync: () => void;
+  /** Resume auto-sync after it was paused */
+  resumeAutoSync: () => void;
+  /** Read-only peek at cloud data for a store — does not modify local state */
+  checkCloudData: (storeNumber: string) => Promise<AppData | null>;
 }
 
 export const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -168,6 +174,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
    */
   const hasLoadedFromCloudRef = useRef(false);
 
+  /** When true, the auto-sync useEffect skips scheduling cloud writes. */
+  const syncPausedRef = useRef(false);
+
   // ── Cloud sync: push to cloud ─────────────────────────────
 
   /**
@@ -179,6 +188,19 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const storeNumber = data.settings.storeNumber;
 
     if (!storeNumber) return; // No store number configured — nothing to do
+
+    // Defence-in-depth: never silently push empty data over real cloud data
+    if (data.weeks.length === 0) {
+      try {
+        const remote = await readStoreData(storeNumber);
+        if (remote && remote.weeks.length > 0 && !isMockData(remote)) {
+          console.warn('Skipping sync: local data is empty but cloud has real data.');
+          return;
+        }
+      } catch {
+        // If the peek fails, let the write attempt proceed (it'll fail too if network is down)
+      }
+    }
 
     setIsSyncing(true);
     setSyncError(null);
@@ -255,8 +277,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveToStorage(appData);
 
-    // Schedule a debounced auto-sync if a store number is configured
-    if (appData.settings.storeNumber) {
+    // Schedule a debounced auto-sync if a store number is configured and sync is not paused
+    if (appData.settings.storeNumber && !syncPausedRef.current) {
       // Clear any previously scheduled sync
       if (autoSyncTimerRef.current) {
         clearTimeout(autoSyncTimerRef.current);
@@ -288,6 +310,26 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Sync pause / cloud peek ─────────────────────────────
+
+  const pauseAutoSync = useCallback(() => {
+    syncPausedRef.current = true;
+    if (autoSyncTimerRef.current) {
+      clearTimeout(autoSyncTimerRef.current);
+      autoSyncTimerRef.current = null;
+    }
+  }, []);
+
+  const resumeAutoSync = useCallback(() => {
+    syncPausedRef.current = false;
+  }, []);
+
+  /** Read-only peek — does NOT mutate local state. */
+  const checkCloudData = useCallback(
+    async (storeNumber: string): Promise<AppData | null> => readStoreData(storeNumber),
+    [],
+  );
 
   // ── Existing mutation callbacks ───────────────────────────
 
@@ -408,6 +450,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         syncError,
         syncToCloud,
         loadFromCloud,
+        pauseAutoSync,
+        resumeAutoSync,
+        checkCloudData,
       }}
     >
       {children}

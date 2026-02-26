@@ -23,6 +23,9 @@ export function Settings() {
     syncError,
     syncToCloud,
     loadFromCloud,
+    pauseAutoSync,
+    resumeAutoSync,
+    checkCloudData,
   } = useAppData();
 
   // ---- Period configuration local state ----
@@ -59,19 +62,47 @@ export function Settings() {
   const handleSaveAndConnect = async () => {
     const trimmed = storeNumberInput.trim();
     if (!trimmed) return;
-    updateSettings({ ...appData.settings, storeNumber: trimmed });
     setConnectionStatus('idle');
+
     try {
+      // 1. Test basic connectivity
       const ok = await testConnection();
       if (!ok) {
         setConnectionStatus('failed');
         return;
       }
-      setConnectionStatus('connected');
 
-      // If cloud data exists for this store number, load it instead of
-      // pushing potentially-empty local data and overwriting the cloud.
-      await loadFromCloud();
+      // 2. Peek at existing cloud data (read-only, no state mutation)
+      const existing = await checkCloudData(trimmed);
+      const cloudHasData = existing !== null && existing.weeks.length > 0;
+
+      // 3. If cloud already has real data, confirm before proceeding
+      if (cloudHasData) {
+        const weekCount = existing!.weeks.length;
+        const confirmed = window.confirm(
+          `Store ${trimmed} already has data in the cloud (${weekCount} week${weekCount === 1 ? '' : 's'} uploaded). ` +
+          `Your local data will be replaced with the cloud data.\n\nContinue?`,
+        );
+        if (!confirmed) return;
+      }
+
+      // 4. Pause auto-sync to prevent the race condition
+      pauseAutoSync();
+
+      try {
+        // 5. Commit the store number to state (auto-sync won't fire)
+        updateSettings({ ...appData.settings, storeNumber: trimmed });
+
+        // 6. If cloud had data, pull it in
+        if (cloudHasData) {
+          await loadFromCloud();
+        }
+
+        setConnectionStatus('connected');
+      } finally {
+        // 7. Always resume auto-sync
+        resumeAutoSync();
+      }
     } catch {
       setConnectionStatus('failed');
     }
