@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useComputedKPIs } from '../../hooks/useComputedKPIs';
 import { useAppData } from '../../hooks/useAppData';
 import { generateWhatsAppMessage } from '../../engine/messageTemplate';
@@ -7,31 +7,29 @@ export function MessageGenerator() {
   const kpis = useComputedKPIs();
   const { appData } = useAppData();
 
-  // Generate the template message from computed KPIs + settings
+  // Seed counter — incrementing this forces a new message variant
+  const [seed, setSeed] = useState(0);
+
+  // Generate the template message from computed KPIs + settings + seed
   const templateMessage = useMemo(() => {
     if (!kpis) return '';
-    return generateWhatsAppMessage(kpis, appData.settings);
-  }, [kpis, appData.settings]);
+    return generateWhatsAppMessage(kpis, appData.settings, seed);
+  }, [kpis, appData.settings, seed]);
 
   // Editable message state — initialised from the template
   const [message, setMessage] = useState<string>(templateMessage);
   const [copied, setCopied] = useState(false);
 
-  // Keep message in sync when templateMessage changes (e.g. new week selected)
-  // We use a ref-based approach: if the template changes, reset the textarea
-  // only when the user hasn't manually edited. For simplicity, we always
-  // provide a "Regenerate" button to reset manually.
-  const [lastTemplate, setLastTemplate] = useState<string>(templateMessage);
-  if (templateMessage !== lastTemplate) {
-    setLastTemplate(templateMessage);
+  // Keep message in sync when templateMessage changes (new week, new seed, etc.)
+  useEffect(() => {
     setMessage(templateMessage);
-  }
+  }, [templateMessage]);
 
   // ---- Handlers ----
 
   const handleRegenerate = useCallback(() => {
-    setMessage(templateMessage);
-  }, [templateMessage]);
+    setSeed((s) => s + 1);
+  }, []);
 
   const handleCopy = useCallback(async () => {
     try {

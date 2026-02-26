@@ -69,10 +69,12 @@ export function getEncouragement(
   kpiName: string,
   tone: MessageTone,
   remaining?: number,
+  seed?: number,
 ): string {
-  // Deterministic index — derived from the kpiName length so each KPI
-  // consistently picks the same option.
-  const deterministicIndex = kpiName.length;
+  // When a seed is provided (e.g. from the Regenerate button), use it to
+  // pick a different option each time. Otherwise fall back to a stable
+  // index derived from the kpiName so the initial render is deterministic.
+  const pickIndex = seed != null ? seed + kpiName.length : kpiName.length;
 
   if (tone === 'neutral') {
     if (rag === 'green') return 'Target achieved.';
@@ -100,12 +102,12 @@ export function getEncouragement(
 
   // Encouraging tone (default)
   if (rag === 'green') {
-    return ENCOURAGING_GREEN[deterministicIndex % ENCOURAGING_GREEN.length];
+    return ENCOURAGING_GREEN[pickIndex % ENCOURAGING_GREEN.length];
   }
 
   if (rag === 'amber') {
     const options = ENCOURAGING_AMBER_GENERIC;
-    const selected = options[deterministicIndex % options.length];
+    const selected = options[pickIndex % options.length];
     return remaining !== undefined
       ? selected.replace('{remaining}', String(remaining))
       : selected.replace(' Just {remaining} more to go!', '').replace('{remaining}', '');
@@ -134,6 +136,7 @@ export function getEncouragement(
 export function generateWhatsAppMessage(
   kpis: ComputedKPIs,
   settings: Settings,
+  seed?: number,
 ): string {
   const { showTrendIndicators, messageTone } = settings;
   const lines: string[] = [];
@@ -158,6 +161,7 @@ export function generateWhatsAppMessage(
     'cnl',
     messageTone,
     cnlRemaining,
+    seed,
   );
 
   lines.push(
@@ -178,6 +182,7 @@ export function generateWhatsAppMessage(
     'digitalReceipts',
     messageTone,
     drRemaining,
+    seed,
   );
 
   lines.push(
@@ -201,6 +206,7 @@ export function generateWhatsAppMessage(
     'ois',
     messageTone,
     oisRemaining,
+    seed,
   );
 
   lines.push(
@@ -227,13 +233,26 @@ export function generateWhatsAppMessage(
   // ================================================================
   // Closing encouragement
   // ================================================================
-  const closingMessages: Record<MessageTone, string> = {
-    encouraging: "Keep up the great work, team! Let's make next week even better! 🔥",
-    neutral: 'End of weekly update. 🔥',
-    coaching: "Let's carry this momentum into next week — every interaction counts! 🔥",
+  const closingOptions: Record<MessageTone, string[]> = {
+    encouraging: [
+      "Keep up the great work, team! Let's make next week even better! 🔥",
+      "Amazing effort this week — let's keep the energy going! 🔥",
+      "Great hustle, team! Onwards and upwards! 🔥",
+    ],
+    neutral: [
+      'End of weekly update.',
+      'Weekly summary complete.',
+    ],
+    coaching: [
+      "Let's carry this momentum into next week — every interaction counts! 🔥",
+      "Stay focused on the key areas above — consistency is everything! 🔥",
+      "Small improvements add up — let's keep building on this! 🔥",
+    ],
   };
 
-  lines.push(closingMessages[messageTone]);
+  const options = closingOptions[messageTone];
+  const closingIdx = seed != null ? seed : 0;
+  lines.push(options[closingIdx % options.length]);
 
   return lines.join('\n');
 }

@@ -87,6 +87,36 @@ function saveToStorage(data: AppData): void {
 }
 
 // ============================================================
+// Mock-data detection
+// ============================================================
+
+/** Known mock employee names shipped with dev placeholder data. */
+const MOCK_NAMES = new Set(['Sarah', 'James', 'Priya', 'Tom']);
+
+/**
+ * Returns true when every employee name in the dataset matches one of the
+ * known mock names.  This catches stale mock data that was synced to
+ * the cloud before the fallback was switched to EMPTY_APP_DATA.
+ */
+function isMockData(data: AppData): boolean {
+  if (data.weeks.length === 0) return false;
+
+  const names = new Set<string>();
+  for (const week of data.weeks) {
+    for (const p of week.digitalReceipts.byPerson) names.add(p.name);
+    for (const p of week.ois.byPerson) names.add(p.name);
+  }
+
+  if (names.size === 0) return false;
+
+  // If every name in the dataset is a mock name, it's mock data
+  for (const n of names) {
+    if (!MOCK_NAMES.has(n)) return false;
+  }
+  return true;
+}
+
+// ============================================================
 // Validation helpers
 // ============================================================
 
@@ -185,21 +215,28 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       const remote = await readStoreData(storeNumber);
 
       if (remote) {
-        // Merge: remote data wins, but preserve local storeNumber
-        const merged: AppData = {
-          ...remote,
-          settings: {
-            ...remote.settings,
-            storeNumber: storeNumber,
-          },
-        };
+        // Guard: if the cloud still holds stale mock/placeholder data,
+        // overwrite it with the (clean) local state instead of merging.
+        if (isMockData(remote)) {
+          console.info('Cloud contains stale mock data — pushing local data to clean it up.');
+          await writeStoreData(storeNumber, data);
+        } else {
+          // Merge: remote data wins, but preserve local storeNumber
+          const merged: AppData = {
+            ...remote,
+            settings: {
+              ...remote.settings,
+              storeNumber: storeNumber,
+            },
+          };
 
-        setAppDataState(merged);
-        saveToStorage(merged);
+          setAppDataState(merged);
+          saveToStorage(merged);
 
-        // Update currentWeek to match the merged data
-        if (merged.weeks.length > 0) {
-          setCurrentWeek(merged.weeks[merged.weeks.length - 1].weekNumber);
+          // Update currentWeek to match the merged data
+          if (merged.weeks.length > 0) {
+            setCurrentWeek(merged.weeks[merged.weeks.length - 1].weekNumber);
+          }
         }
       }
 

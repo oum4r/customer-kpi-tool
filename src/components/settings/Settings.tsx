@@ -63,7 +63,15 @@ export function Settings() {
     setConnectionStatus('idle');
     try {
       const ok = await testConnection();
-      setConnectionStatus(ok ? 'connected' : 'failed');
+      if (!ok) {
+        setConnectionStatus('failed');
+        return;
+      }
+      setConnectionStatus('connected');
+
+      // If cloud data exists for this store number, load it instead of
+      // pushing potentially-empty local data and overwriting the cloud.
+      await loadFromCloud();
     } catch {
       setConnectionStatus('failed');
     }
@@ -348,83 +356,101 @@ export function Settings() {
 
       {/* ---- Cloud Sync ---- */}
       <section className={sectionClass}>
-        <div>
-          <h2 className="text-base font-semibold text-gray-800">Cloud Sync</h2>
-          <p className="text-xs text-gray-500">
-            Sync your data to the cloud so it persists across browsers and devices.
-            Enter your store number to get started.
-          </p>
-        </div>
-
-        <div>
-          <label htmlFor="storeNumber" className={labelClass}>
-            Store Number
-          </label>
-          <input
-            id="storeNumber"
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            className={inputClass}
-            placeholder="e.g. 1234"
-            value={storeNumberInput}
-            onChange={(e) => {
-              setStoreNumberInput(e.target.value);
-              setConnectionStatus('idle');
-            }}
-          />
-          <p className="mt-1 text-xs text-gray-400">
-            Your store number identifies your data in the cloud. All devices using the same
-            store number will share the same data.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" className={btnPrimary} onClick={handleSaveAndConnect}>
-            Save &amp; Connect
-          </button>
-          <button
-            type="button"
-            className={btnSecondary}
-            disabled={isSyncing || !appData.settings.storeNumber}
-            onClick={syncToCloud}
-          >
-            Sync Now
-          </button>
-          <button
-            type="button"
-            className={btnSecondary}
-            disabled={isSyncing || !appData.settings.storeNumber}
-            onClick={loadFromCloud}
-          >
-            Load from Cloud
-          </button>
-
-          {connectionStatus === 'connected' && (
-            <span className="text-sm font-medium text-green-600">Connected &#x2713;</span>
-          )}
-          {connectionStatus === 'failed' && (
-            <span className="text-sm font-medium text-red-600">Failed &#x2717;</span>
-          )}
-        </div>
-
-        {/* Status display */}
-        <div className="space-y-1">
-          {isSyncing && (
-            <p className="text-sm text-blue-600 animate-pulse">Syncing...</p>
-          )}
-          {syncError && (
-            <p className="text-sm text-red-600">{syncError}</p>
-          )}
-          {!isSyncing && lastSyncedAt && (
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800">Cloud Sync</h2>
             <p className="text-xs text-gray-500">
-              Last synced: {formatRelativeTime(lastSyncedAt)}
+              Sync data across browsers and devices.
             </p>
-          )}
-          {!isSyncing && !lastSyncedAt && !syncError && !appData.settings.storeNumber && (
-            <p className="text-xs text-gray-400">Not connected</p>
+          </div>
+
+          {/* Connection badge */}
+          {appData.settings.storeNumber ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 ring-1 ring-green-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+              Store {appData.settings.storeNumber}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+              Not connected
+            </span>
           )}
         </div>
+
+        {/* Store number input + connect */}
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <label htmlFor="storeNumber" className={labelClass}>
+              Store Number
+            </label>
+            <input
+              id="storeNumber"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className={inputClass}
+              placeholder="e.g. 1234"
+              value={storeNumberInput}
+              onChange={(e) => {
+                setStoreNumberInput(e.target.value);
+                setConnectionStatus('idle');
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className={`${btnPrimary} mt-1 shrink-0`}
+            onClick={handleSaveAndConnect}
+          >
+            {appData.settings.storeNumber ? 'Reconnect' : 'Connect'}
+          </button>
+        </div>
+
+        {/* Inline connection feedback */}
+        {connectionStatus === 'connected' && (
+          <p className="text-xs font-medium text-green-600">Connected — cloud data loaded ✓</p>
+        )}
+        {connectionStatus === 'failed' && (
+          <p className="text-xs font-medium text-red-600">Connection failed — check your network ✗</p>
+        )}
+
+        {/* Sync buttons — only show when connected */}
+        {appData.settings.storeNumber && (
+          <div className="flex items-center gap-3 border-t border-gray-100 pt-3">
+            <button
+              type="button"
+              className={btnSecondary}
+              disabled={isSyncing}
+              onClick={syncToCloud}
+            >
+              {isSyncing ? 'Syncing…' : 'Push to Cloud'}
+            </button>
+            <button
+              type="button"
+              className={btnSecondary}
+              disabled={isSyncing}
+              onClick={loadFromCloud}
+            >
+              Pull from Cloud
+            </button>
+
+            {/* Status */}
+            <div className="ml-auto text-right">
+              {isSyncing && (
+                <p className="text-xs text-blue-600 animate-pulse">Syncing…</p>
+              )}
+              {syncError && (
+                <p className="text-xs text-red-600">{syncError}</p>
+              )}
+              {!isSyncing && lastSyncedAt && (
+                <p className="text-xs text-gray-400">
+                  Last synced {formatRelativeTime(lastSyncedAt)}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ---- Management ---- */}
