@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useComputedKPIs } from '../../hooks/useComputedKPIs';
 import { useAppData } from '../../hooks/useAppData';
 import { useTrendData } from '../../hooks/useTrendData';
@@ -8,6 +8,7 @@ import type { LeaderboardColumn } from './Leaderboard';
 import { TopPerformer } from './TopPerformer';
 import { TrendChart } from '../charts/TrendChart';
 import { WeekSelector } from './WeekSelector';
+import { EmployeeHistoryModal } from './EmployeeHistoryModal';
 
 /**
  * Column definitions for the Digital Receipts leaderboard.
@@ -42,10 +43,11 @@ const oisColumns: LeaderboardColumn[] = [
  * the top performer banner, and trend charts.
  */
 export function Dashboard() {
-  const { appData, currentWeek, setCurrentWeek } = useAppData();
+  const { appData, currentWeek, setCurrentWeek, deleteWeek } = useAppData();
   const kpis = useComputedKPIs(currentWeek ?? undefined);
   const trendData = useTrendData();
   const showTrend = appData.settings.showTrendIndicators;
+  const [historyEmployee, setHistoryEmployee] = useState<{ name: string; type: 'digitalReceipts' | 'ois' } | null>(null);
 
   const availableWeeks = useMemo(
     () => appData.weeks.map((w) => w.weekNumber).sort((a, b) => a - b),
@@ -79,6 +81,7 @@ export function Dashboard() {
             weeks={availableWeeks}
             currentWeek={currentWeek}
             onWeekChange={setCurrentWeek}
+            onDeleteWeek={deleteWeek}
           />
         )}
       </header>
@@ -129,12 +132,14 @@ export function Dashboard() {
           columns={digitalReceiptsColumns}
           data={kpis.digitalReceipts.leaderboard}
           highlightTopPerformer
+          onNameClick={(name) => setHistoryEmployee({ name, type: 'digitalReceipts' })}
         />
         <Leaderboard
           title="Order in Store Leaderboard"
           columns={oisColumns}
           data={kpis.ois.leaderboard}
           highlightTopPerformer
+          onNameClick={(name) => setHistoryEmployee({ name, type: 'ois' })}
         />
       </section>
 
@@ -177,6 +182,14 @@ export function Dashboard() {
             />
           </div>
         </section>
+      )}
+
+      {historyEmployee && (
+        <EmployeeHistoryModal
+          employeeName={historyEmployee.name}
+          datasetType={historyEmployee.type}
+          onClose={() => setHistoryEmployee(null)}
+        />
       )}
     </div>
   );

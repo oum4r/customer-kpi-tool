@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from 'react';
 import type { DatasetType, ParsedRow, WeekData } from '../../types';
 import { parseCSV } from '../../parsers/csvParser';
 import { parseExcel, getSheetNames } from '../../parsers/excelParser';
-import { parsePdf } from '../../parsers/pdfParser';
 import { ColumnMapper } from './ColumnMapper';
 import { CnlQuickEntry } from './CnlQuickEntry';
 import { useAppData } from '../../hooks/useAppData';
@@ -299,6 +298,7 @@ export function FileUpload() {
       let fileStoreNumber: string | null = null;
 
       if (ext === '.pdf') {
+        const { parsePdf } = await import('../../parsers/pdfParser');
         const result = await parsePdf(file);
         rows = result.rows;
         weekFromFile = result.detectedWeekNumber;

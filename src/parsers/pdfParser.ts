@@ -1,8 +1,16 @@
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import type { ParsedRow } from '../types';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Lazy-load pdfjs-dist on first use to avoid bundling ~2.5MB on initial load
+let pdfjsLibCached: typeof import('pdfjs-dist') | null = null;
+
+async function ensurePdfjs(): Promise<typeof import('pdfjs-dist')> {
+  if (pdfjsLibCached) return pdfjsLibCached;
+  const lib = await import('pdfjs-dist');
+  const workerModule = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
+  lib.GlobalWorkerOptions.workerSrc = workerModule.default;
+  pdfjsLibCached = lib;
+  return lib;
+}
 
 // ============================================================
 // Public types
@@ -150,6 +158,7 @@ function assignToColumn(
 // ============================================================
 
 export async function parsePdf(file: File): Promise<PdfParseResult> {
+  const pdfjsLib = await ensurePdfjs();
   const buffer = await readFileAsArrayBuffer(file);
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
 

@@ -10,6 +10,7 @@ export interface LeaderboardProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>[];
   highlightTopPerformer?: boolean;
+  onNameClick?: (name: string) => void;
 }
 
 /**
@@ -17,7 +18,7 @@ export interface LeaderboardProps {
  * zebra striping, and horizontal scroll on mobile for many columns.
  * Management rows are greyed out, unranked, and pushed to the bottom.
  */
-export function Leaderboard({ title, columns, data, highlightTopPerformer = true }: LeaderboardProps) {
+export function Leaderboard({ title, columns, data, highlightTopPerformer = true, onNameClick }: LeaderboardProps) {
   if (data.length === 0) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -97,7 +98,17 @@ export function Leaderboard({ title, columns, data, highlightTopPerformer = true
                             🏆
                           </span>
                         )}
-                        {displayValue}
+                        {col.key === 'name' && onNameClick ? (
+                          <button
+                            type="button"
+                            onClick={() => onNameClick(String(rawValue))}
+                            className="text-left hover:underline hover:text-blue-600 transition-colors"
+                          >
+                            {displayValue}
+                          </button>
+                        ) : (
+                          displayValue
+                        )}
                       </td>
                     );
                   })}

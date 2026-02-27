@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import html2canvas from 'html2canvas';
 import { useComputedKPIs } from '../../hooks/useComputedKPIs';
 import { useTrendData } from '../../hooks/useTrendData';
 import { TrendChart } from '../charts/TrendChart';
@@ -780,6 +779,7 @@ export function InfographicExport() {
       const captureW = format === 'portrait' ? container.scrollWidth : LANDSCAPE_W;
       const captureH = format === 'portrait' ? container.scrollHeight : LANDSCAPE_H;
 
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,

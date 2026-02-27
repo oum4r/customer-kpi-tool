@@ -36,6 +36,8 @@ export interface AppDataContextValue {
   resumeAutoSync: () => void;
   /** Read-only peek at cloud data for a store — does not modify local state */
   checkCloudData: (storeNumber: string) => Promise<AppData | null>;
+  /** Delete a single week's data by week number */
+  deleteWeek: (weekNumber: number) => void;
 }
 
 export const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -391,6 +393,21 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setCurrentWeek(null);
   }, []);
 
+  const deleteWeek = useCallback((weekNumber: number) => {
+    setAppDataState((prev) => ({
+      ...prev,
+      weeks: prev.weeks.filter((w) => w.weekNumber !== weekNumber),
+    }));
+    // If the deleted week was currently selected, switch to the most recent remaining
+    setCurrentWeek((prev) => {
+      if (prev !== weekNumber) return prev;
+      const remaining = appData.weeks
+        .filter((w) => w.weekNumber !== weekNumber)
+        .sort((a, b) => b.weekNumber - a.weekNumber);
+      return remaining.length > 0 ? remaining[0].weekNumber : null;
+    });
+  }, [appData.weeks]);
+
   const exportData = useCallback((): string => {
     const json = JSON.stringify(appData, null, 2);
 
@@ -453,6 +470,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         pauseAutoSync,
         resumeAutoSync,
         checkCloudData,
+        deleteWeek,
       }}
     >
       {children}
