@@ -36,7 +36,21 @@ function ProgressBar({ percentage, colour }: { percentage: number; colour: strin
   );
 }
 
-function TrendArrow({ trend, delta }: { trend: string | null; delta: number | null }) {
+function formatDelta(delta: number | null, unit: string): string {
+  if (delta == null) return '';
+  const sign = delta > 0 ? '+' : '';
+  if (unit === '£') return `${sign}£${Math.abs(delta)}`;
+  if (unit === '%') return `${sign}${delta}%`;
+  return `${sign}${delta}`;
+}
+
+function withUnit(n: number, unit: string): string {
+  if (unit === '£') return `£${n}`;
+  if (unit === '%') return `${n}%`;
+  return String(n);
+}
+
+function TrendArrow({ trend, delta, unit = '' }: { trend: string | null; delta: number | null; unit?: string }) {
   if (!trend) return null;
 
   const colour =
@@ -47,8 +61,7 @@ function TrendArrow({ trend, delta }: { trend: string | null; delta: number | nu
       {trend}
       {delta != null && (
         <span style={{ fontSize: 16, fontWeight: 400, marginLeft: 3 }}>
-          {delta > 0 ? '+' : ''}
-          {delta}
+          {formatDelta(delta, unit)}
         </span>
       )}
     </span>
@@ -82,14 +95,18 @@ function HeaderSection({ weekNumber, periodName, slim }: { weekNumber: number; p
 
 function KPICard({
   title,
-  valueLabel,
+  value,
+  target,
+  unit,
   percentage,
   rag,
   trend,
   delta,
 }: {
   title: string;
-  valueLabel: string;
+  value: number;
+  target: number;
+  unit: string;
   percentage: number;
   rag: RAGStatus;
   trend: string | null;
@@ -113,8 +130,8 @@ function KPICard({
         {title}
       </div>
       <div style={{ fontSize: 42, fontWeight: 700, color: colour, marginBottom: 6 }}>
-        {valueLabel}
-        <TrendArrow trend={trend} delta={delta} />
+        {withUnit(value, unit)} / {withUnit(target, unit)}
+        <TrendArrow trend={trend} delta={delta} unit={unit} />
       </div>
       <div style={{ fontSize: 17, color: '#6b7280', marginBottom: 14 }}>
         {Math.round(percentage)}% of target
@@ -136,7 +153,9 @@ function KPICardsSection({ kpis }: { kpis: ComputedKPIs }) {
     >
       <KPICard
         title="CNL Sign-Ups"
-        valueLabel={`${kpis.cnl.signUps}/${kpis.cnl.target}`}
+        value={kpis.cnl.signUps}
+        target={kpis.cnl.target}
+        unit="sign-ups"
         percentage={kpis.cnl.percentage}
         rag={kpis.cnl.rag}
         trend={kpis.cnl.trend}
@@ -144,7 +163,9 @@ function KPICardsSection({ kpis }: { kpis: ComputedKPIs }) {
       />
       <KPICard
         title="Digital Receipts"
-        valueLabel={`${Math.round(kpis.digitalReceipts.storePercentage)}%`}
+        value={Math.round(kpis.digitalReceipts.storePercentage)}
+        target={kpis.digitalReceipts.target}
+        unit="%"
         percentage={
           kpis.digitalReceipts.target > 0
             ? (kpis.digitalReceipts.storePercentage / kpis.digitalReceipts.target) * 100
@@ -156,7 +177,9 @@ function KPICardsSection({ kpis }: { kpis: ComputedKPIs }) {
       />
       <KPICard
         title="OIS Revenue"
-        valueLabel={`£${kpis.ois.storeTotal}/£${kpis.ois.target}`}
+        value={kpis.ois.storeTotal}
+        target={kpis.ois.target}
+        unit="£"
         percentage={
           kpis.ois.target > 0 ? (kpis.ois.storeTotal / kpis.ois.target) * 100 : 0
         }
@@ -652,7 +675,9 @@ function LandscapeCanvas({
         <div style={{ flex: '1 1 0', display: 'flex', gap: 12 }}>
           <KPICard
             title="CNL Sign-Ups"
-            valueLabel={`${kpis.cnl.signUps}/${kpis.cnl.target}`}
+            value={kpis.cnl.signUps}
+            target={kpis.cnl.target}
+            unit="sign-ups"
             percentage={kpis.cnl.percentage}
             rag={kpis.cnl.rag}
             trend={kpis.cnl.trend}
@@ -660,7 +685,9 @@ function LandscapeCanvas({
           />
           <KPICard
             title="Digital Receipts"
-            valueLabel={`${Math.round(kpis.digitalReceipts.storePercentage)}%`}
+            value={Math.round(kpis.digitalReceipts.storePercentage)}
+            target={kpis.digitalReceipts.target}
+            unit="%"
             percentage={
               kpis.digitalReceipts.target > 0
                 ? (kpis.digitalReceipts.storePercentage / kpis.digitalReceipts.target) * 100
@@ -672,7 +699,9 @@ function LandscapeCanvas({
           />
           <KPICard
             title="OIS Revenue"
-            valueLabel={`£${kpis.ois.storeTotal}/£${kpis.ois.target}`}
+            value={kpis.ois.storeTotal}
+            target={kpis.ois.target}
+            unit="£"
             percentage={
               kpis.ois.target > 0 ? (kpis.ois.storeTotal / kpis.ois.target) * 100 : 0
             }

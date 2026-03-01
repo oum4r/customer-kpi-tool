@@ -32,27 +32,21 @@ export function KPICard({
   const remaining = target - value;
   const isBelow = remaining > 0;
 
-  // Format the value display based on the unit type
-  const formatValue = () => {
-    if (unit === '%') {
-      return `${value}% / ${target}%`;
-    }
-    if (unit.startsWith('£') || unit.startsWith('£')) {
-      return `£${value} / £${target}`;
-    }
-    return `${value} / ${target} ${unit}`;
+  const isCurrency = unit === '£';
+  const isPercent = unit === '%';
+
+  /** Attach the unit to a number: £200, 78%, 33 */
+  const withUnit = (n: number) => {
+    if (isCurrency) return `£${n}`;
+    if (isPercent) return `${n}%`;
+    return String(n);
   };
 
-  // Format the remaining callout message
-  const formatRemaining = () => {
-    if (unit === '%') {
-      return `${remaining}% more needed`;
-    }
-    if (unit.startsWith('£') || unit.startsWith('£')) {
-      return `£${remaining} more needed`;
-    }
-    return `${remaining} more ${unit} to hit target`;
-  };
+  // Format: "value / target" — unit always attached to each number
+  const formatValue = () => `${withUnit(value)} / ${withUnit(target)}`;
+
+  // Format remaining — consistent phrasing for all units
+  const formatRemaining = () => `${withUnit(remaining)} more needed`;
 
   // Determine trend arrow colour
   const trendColourClass = (() => {
@@ -61,10 +55,12 @@ export function KPICard({
     return 'text-gray-500';
   })();
 
-  // Format delta display
+  // Format delta with unit so it's meaningful (e.g. +15, +1%, -£34.86)
   const formatDelta = () => {
     if (delta === null) return '';
     const sign = delta > 0 ? '+' : '';
+    if (isCurrency) return `${sign}£${Math.abs(delta)}`;
+    if (isPercent) return `${sign}${delta}%`;
     return `${sign}${delta}`;
   };
 
