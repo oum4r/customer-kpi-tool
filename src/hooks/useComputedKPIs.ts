@@ -15,6 +15,6 @@ export function useComputedKPIs(weekNumber?: number): ComputedKPIs | null {
     const weekData = appData.weeks.find((w) => w.weekNumber === targetWeekNum);
     if (!weekData) return null;
 
-    return computeKPIs(weekData, appData.weeks, appData.targets, appData.period.name, managementNames);
-  }, [appData.weeks, appData.targets, appData.period.name, weekNumber, currentWeek, managementNames]);
+    return computeKPIs(weekData, appData.weeks, appData.targets, managementNames);
+  }, [appData.weeks, appData.targets, weekNumber, currentWeek, managementNames]);
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { WeekData } from '../../types';
 import { useAppData } from '../../hooks/useAppData';
+import { getCurrentFiscalWeeks } from '../../engine/fiscalCalendar';
 
 // ============================================================
 // Feedback banner
@@ -16,13 +17,17 @@ interface FeedbackState {
 // ============================================================
 
 export function CnlQuickEntry() {
-  const { appData, addWeekData } = useAppData();
+  const { addWeekData } = useAppData();
 
-  // Derive default week number from the highest existing period week
-  const defaultWeek =
-    appData.period.weeks.length > 0
-      ? appData.period.weeks[appData.period.weeks.length - 1]
-      : undefined;
+  // Default to the last week in the current fiscal period
+  const currentISOWeek = (() => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  })();
+  const fiscalWeeks = getCurrentFiscalWeeks(currentISOWeek);
+  const defaultWeek = fiscalWeeks.length > 0 ? fiscalWeeks[fiscalWeeks.length - 1] : undefined;
 
   const [weekNumber, setWeekNumber] = useState<string>(
     defaultWeek != null ? String(defaultWeek) : '',

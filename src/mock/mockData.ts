@@ -3,7 +3,6 @@ import type {
   TrendData,
   WeekData,
   AppData,
-  PeriodConfig,
   Targets,
   Settings,
 } from '../types';
@@ -18,13 +17,6 @@ export const DEFAULT_SETTINGS: Settings = {
   showTrendIndicators: true,
   messageTone: 'encouraging',
   managementNames: [],
-};
-
-export const DEFAULT_PERIOD_CONFIG: PeriodConfig = {
-  name: 'Period 11',
-  startDate: '2026-01-25',
-  endDate: '2026-02-21',
-  weeks: [44, 45, 46, 47],
 };
 
 export const MOCK_WEEK_DATA: WeekData[] = [
@@ -131,9 +123,11 @@ export const MOCK_COMPUTED_KPIS: ComputedKPIs = {
 };
 
 export const MOCK_TREND_DATA: TrendData = {
-  weeks: [44, 45, 46],
+  cnlWeeks: [44, 45, 46],
   cnlValues: [12, 14, 18],
+  digitalWeeks: [44, 45, 46],
   digitalValues: [68, 77, 74],
+  oisWeeks: [44, 45, 46],
   oisValues: [95, 128, 156],
   cnlTarget: 25,
   digitalTarget: 80,
@@ -141,7 +135,6 @@ export const MOCK_TREND_DATA: TrendData = {
 };
 
 export const MOCK_APP_DATA: AppData = {
-  period: DEFAULT_PERIOD_CONFIG,
   weeks: MOCK_WEEK_DATA,
   targets: DEFAULT_TARGETS,
   settings: DEFAULT_SETTINGS,

@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import { calculateRAG } from './ragStatus';
 import { stripEmployeeNumber, firstName } from './nameUtils';
+import { getPeriodForWeek } from './fiscalCalendar';
 
 // ============================================================
 // Helper Functions
@@ -212,9 +213,9 @@ export function computeKPIs(
   weekData: WeekData,
   allWeeks: WeekData[],
   targets: Targets,
-  periodName: string,
   managementNames: string[] = [],
 ): ComputedKPIs {
+  const { periodName } = getPeriodForWeek(weekData.weekNumber);
   const previousWeek = findPreviousWeek(weekData.weekNumber, allWeeks);
 
   // --- CNL ---
@@ -286,27 +287,40 @@ export function computeKPIs(
 
 /**
  * Compute trend data across all available weeks for charting.
- * Weeks are sorted ascending by weekNumber.
+ * Each KPI gets its own week array — weeks without data for a given
+ * KPI are excluded from that KPI's trend line.
  */
 export function computeTrendData(weeks: WeekData[], targets: Targets): TrendData {
   const sorted = [...weeks].sort((a, b) => a.weekNumber - b.weekNumber);
 
-  const weekNumbers: number[] = [];
+  const cnlWeeks: number[] = [];
   const cnlValues: number[] = [];
+  const digitalWeeks: number[] = [];
   const digitalValues: number[] = [];
+  const oisWeeks: number[] = [];
   const oisValues: number[] = [];
 
   for (const week of sorted) {
-    weekNumbers.push(week.weekNumber);
-    cnlValues.push(week.cnl.signUps);
-    digitalValues.push(computeDigitalReceiptPercentage(week.digitalReceipts.byPerson));
-    oisValues.push(computeOISStoreTotal(week.ois.byPerson));
+    if (week.cnl.signUps > 0) {
+      cnlWeeks.push(week.weekNumber);
+      cnlValues.push(week.cnl.signUps);
+    }
+    if (week.digitalReceipts.byPerson.length > 0) {
+      digitalWeeks.push(week.weekNumber);
+      digitalValues.push(computeDigitalReceiptPercentage(week.digitalReceipts.byPerson));
+    }
+    if (week.ois.byPerson.length > 0) {
+      oisWeeks.push(week.weekNumber);
+      oisValues.push(computeOISStoreTotal(week.ois.byPerson));
+    }
   }
 
   return {
-    weeks: weekNumbers,
+    cnlWeeks,
     cnlValues,
+    digitalWeeks,
     digitalValues,
+    oisWeeks,
     oisValues,
     cnlTarget: targets.cnlWeekly,
     digitalTarget: targets.digitalReceiptPercentage,

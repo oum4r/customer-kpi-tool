@@ -155,7 +155,7 @@ export function Dashboard() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <TrendChart
               title="Club New Look"
-              weeks={trendData.weeks}
+              weeks={trendData.cnlWeeks}
               values={trendData.cnlValues}
               target={trendData.cnlTarget}
               unit="sign-ups"
@@ -164,7 +164,7 @@ export function Dashboard() {
             />
             <TrendChart
               title="Digital Receipts"
-              weeks={trendData.weeks}
+              weeks={trendData.digitalWeeks}
               values={trendData.digitalValues}
               target={trendData.digitalTarget}
               unit="%"
@@ -173,7 +173,7 @@ export function Dashboard() {
             />
             <TrendChart
               title="Order in Store"
-              weeks={trendData.weeks}
+              weeks={trendData.oisWeeks}
               values={trendData.oisValues}
               target={trendData.oisTarget}
               unit="£"

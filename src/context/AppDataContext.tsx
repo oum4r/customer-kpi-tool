@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
-import type { AppData, WeekData, Targets, Settings, PeriodConfig } from '../types';
-import { DEFAULT_TARGETS, DEFAULT_SETTINGS, DEFAULT_PERIOD_CONFIG } from '../mock/mockData';
+import type { AppData, WeekData, Targets, Settings } from '../types';
+import { DEFAULT_TARGETS, DEFAULT_SETTINGS } from '../mock/mockData';
 import { readStoreData, writeStoreData } from '../engine/supabaseStorage';
 
 // ============================================================
@@ -13,7 +13,6 @@ export interface AppDataContextValue {
   addWeekData: (week: WeekData) => void;
   updateTargets: (targets: Targets) => void;
   updateSettings: (settings: Settings) => void;
-  updatePeriodConfig: (config: PeriodConfig) => void;
   updateColumnMappings: (mappings: Record<string, Record<string, string>>) => void;
   resetPeriod: () => void;
   exportData: () => string;
@@ -53,7 +52,6 @@ const AUTO_SYNC_DELAY_MS = 1000;
 
 /** Default empty state for new users (no mock data). */
 const EMPTY_APP_DATA: AppData = {
-  period: DEFAULT_PERIOD_CONFIG,
   weeks: [],
   targets: DEFAULT_TARGETS,
   settings: DEFAULT_SETTINGS,
@@ -69,7 +67,11 @@ function loadFromStorage(): AppData {
     if (raw) {
       const parsed = JSON.parse(raw) as AppData;
       // Basic structural validation
-      if (parsed && parsed.period && Array.isArray(parsed.weeks) && parsed.targets && parsed.settings) {
+      if (parsed && Array.isArray(parsed.weeks) && parsed.targets && parsed.settings) {
+        // Migration: strip deprecated period field from old data
+        if ('period' in parsed) {
+          delete (parsed as Record<string, unknown>).period;
+        }
         // Backwards compatibility: ensure managementNames exists
         if (!Array.isArray(parsed.settings.managementNames)) {
           parsed.settings.managementNames = [];
@@ -132,14 +134,9 @@ function isValidAppData(obj: unknown): obj is AppData {
   if (typeof obj !== 'object' || obj === null) return false;
   const data = obj as Record<string, unknown>;
 
-  if (!data.period || typeof data.period !== 'object') return false;
   if (!Array.isArray(data.weeks)) return false;
   if (!data.targets || typeof data.targets !== 'object') return false;
   if (!data.settings || typeof data.settings !== 'object') return false;
-
-  const period = data.period as Record<string, unknown>;
-  if (typeof period.name !== 'string') return false;
-  if (!Array.isArray(period.weeks)) return false;
 
   const targets = data.targets as Record<string, unknown>;
   if (typeof targets.cnlWeekly !== 'number') return false;
@@ -377,10 +374,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setAppDataState((prev) => ({ ...prev, settings }));
   }, []);
 
-  const updatePeriodConfig = useCallback((config: PeriodConfig) => {
-    setAppDataState((prev) => ({ ...prev, period: config }));
-  }, []);
-
   const updateColumnMappings = useCallback(
     (mappings: Record<string, Record<string, string>>) => {
       setAppDataState((prev) => ({ ...prev, columnMappings: mappings }));
@@ -455,7 +448,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         addWeekData,
         updateTargets,
         updateSettings,
-        updatePeriodConfig,
         updateColumnMappings,
         resetPeriod,
         exportData,

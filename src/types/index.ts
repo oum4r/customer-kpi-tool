@@ -2,7 +2,8 @@
 // Core Data Types
 // ============================================================
 
-export interface PeriodConfig {
+/** @deprecated Kept only for backward-compatible migration of old localStorage data. */
+export interface LegacyPeriodConfig {
   name: string;
   startDate: string;
   endDate: string;
@@ -46,7 +47,6 @@ export interface Settings {
 }
 
 export interface AppData {
-  period: PeriodConfig;
   weeks: WeekData[];
   targets: Targets;
   settings: Settings;
@@ -107,9 +107,11 @@ export interface ComputedKPIs {
 }
 
 export interface TrendData {
-  weeks: number[];
+  cnlWeeks: number[];
   cnlValues: number[];
+  digitalWeeks: number[];
   digitalValues: number[];
+  oisWeeks: number[];
   oisValues: number[];
   cnlTarget: number;
   digitalTarget: number;

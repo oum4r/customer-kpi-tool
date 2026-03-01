@@ -12,7 +12,6 @@ import { testConnection } from '../../engine/supabaseStorage';
 export function Settings() {
   const {
     appData,
-    updatePeriodConfig,
     updateTargets,
     updateSettings,
     resetPeriod,
@@ -27,12 +26,6 @@ export function Settings() {
     resumeAutoSync,
     checkCloudData,
   } = useAppData();
-
-  // ---- Period configuration local state ----
-  const [periodName, setPeriodName] = useState(appData.period.name);
-  const [startDate, setStartDate] = useState(appData.period.startDate);
-  const [endDate, setEndDate] = useState(appData.period.endDate);
-  const [weeksInput, setWeeksInput] = useState(appData.period.weeks.join(', '));
 
   // ---- Target overrides local state ----
   const [cnlTarget, setCnlTarget] = useState(appData.targets.cnlWeekly);
@@ -138,20 +131,6 @@ export function Settings() {
 
   // ---- Handlers ----
 
-  const handleSavePeriod = () => {
-    const weeks = weeksInput
-      .split(',')
-      .map((s) => parseInt(s.trim(), 10))
-      .filter((n) => !isNaN(n));
-
-    updatePeriodConfig({
-      name: periodName,
-      startDate,
-      endDate,
-      weeks,
-    });
-  };
-
   const handleSaveTargets = () => {
     updateTargets({
       cnlWeekly: cnlTarget,
@@ -233,69 +212,6 @@ export function Settings() {
   return (
     <div className="space-y-6 p-4">
       <h1 className="text-xl font-bold text-gray-900">Settings</h1>
-
-      {/* ---- Period Configuration ---- */}
-      <section className={sectionClass}>
-        <h2 className="text-base font-semibold text-gray-800">Period Configuration</h2>
-
-        <div>
-          <label htmlFor="periodName" className={labelClass}>
-            Period Name
-          </label>
-          <input
-            id="periodName"
-            type="text"
-            className={inputClass}
-            value={periodName}
-            onChange={(e) => setPeriodName(e.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="startDate" className={labelClass}>
-              Start Date
-            </label>
-            <input
-              id="startDate"
-              type="date"
-              className={inputClass}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="endDate" className={labelClass}>
-              End Date
-            </label>
-            <input
-              id="endDate"
-              type="date"
-              className={inputClass}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="weeks" className={labelClass}>
-            Week Numbers (comma-separated)
-          </label>
-          <input
-            id="weeks"
-            type="text"
-            className={inputClass}
-            placeholder="e.g. 44, 45, 46, 47"
-            value={weeksInput}
-            onChange={(e) => setWeeksInput(e.target.value)}
-          />
-        </div>
-
-        <button type="button" className={btnPrimary} onClick={handleSavePeriod}>
-          Save Period Config
-        </button>
-      </section>
 
       {/* ---- Target Overrides ---- */}
       <section className={sectionClass}>

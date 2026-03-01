@@ -351,7 +351,7 @@ function TrendChartsSection({ trendData }: { trendData: TrendData }) {
           </div>
           <TrendChart
             title="CNL"
-            weeks={trendData.weeks}
+            weeks={trendData.cnlWeeks}
             values={trendData.cnlValues}
             target={trendData.cnlTarget}
             colour="#3b82f6"
@@ -375,7 +375,7 @@ function TrendChartsSection({ trendData }: { trendData: TrendData }) {
           </div>
           <TrendChart
             title="Digital Receipts"
-            weeks={trendData.weeks}
+            weeks={trendData.digitalWeeks}
             values={trendData.digitalValues}
             target={trendData.digitalTarget}
             colour="#8b5cf6"
@@ -399,7 +399,7 @@ function TrendChartsSection({ trendData }: { trendData: TrendData }) {
           </div>
           <TrendChart
             title="OIS"
-            weeks={trendData.weeks}
+            weeks={trendData.oisWeeks}
             values={trendData.oisValues}
             target={trendData.oisTarget}
             colour="#10b981"
@@ -432,7 +432,7 @@ function TrendChartsSectionVertical({ trendData }: { trendData: TrendData }) {
         </div>
         <TrendChart
           title="CNL"
-          weeks={trendData.weeks}
+          weeks={trendData.cnlWeeks}
           values={trendData.cnlValues}
           target={trendData.cnlTarget}
           colour="#3b82f6"
@@ -455,7 +455,7 @@ function TrendChartsSectionVertical({ trendData }: { trendData: TrendData }) {
         </div>
         <TrendChart
           title="Digital Receipts"
-          weeks={trendData.weeks}
+          weeks={trendData.digitalWeeks}
           values={trendData.digitalValues}
           target={trendData.digitalTarget}
           colour="#8b5cf6"
@@ -478,7 +478,7 @@ function TrendChartsSectionVertical({ trendData }: { trendData: TrendData }) {
         </div>
         <TrendChart
           title="OIS"
-          weeks={trendData.weeks}
+          weeks={trendData.oisWeeks}
           values={trendData.oisValues}
           target={trendData.oisTarget}
           colour="#10b981"
