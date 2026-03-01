@@ -74,10 +74,10 @@ export function KPICard({
         )}
       </div>
 
-      {/* Value display — stacked to avoid wrapping */}
+      {/* Value display — two-line: value then "of target" */}
       <div className="mt-2">
-        <span className="text-2xl font-bold text-gray-900">{withUnit(value)}</span>
-        <span className="ml-1.5 text-sm font-medium text-gray-400">of {withUnit(target)}</span>
+        <div className="text-2xl font-bold text-gray-900">{withUnit(value)}</div>
+        <div className="text-sm font-medium text-gray-400">of {withUnit(target)}</div>
       </div>
 
       {/* Progress bar */}

@@ -137,13 +137,15 @@ function KPICard({
         {title}
       </div>
       <div style={{ marginBottom: compact ? 4 : 6 }}>
-        <span style={{ fontSize: valueSize, fontWeight: 700, color: colour }}>
-          {withUnit(value, unit)}
-        </span>
-        <span style={{ fontSize: targetSize, fontWeight: 500, color: '#9ca3af', marginLeft: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
+          <span style={{ fontSize: valueSize, fontWeight: 700, color: colour }}>
+            {withUnit(value, unit)}
+          </span>
+          <TrendArrow trend={trend} delta={delta} unit={unit} />
+        </div>
+        <div style={{ fontSize: targetSize, fontWeight: 500, color: '#9ca3af', marginTop: 2 }}>
           of {withUnit(target, unit)}
-        </span>
-        <TrendArrow trend={trend} delta={delta} unit={unit} />
+        </div>
       </div>
       <div style={{ fontSize: compact ? 13 : 17, color: '#6b7280', marginBottom: compact ? 8 : 14 }}>
         {Math.round(percentage)}% of target
