@@ -450,82 +450,6 @@ function TrendChartsSection({ trendData }: { trendData: TrendData }) {
   );
 }
 
-/** Landscape variant: 3 trend charts stacked vertically */
-function TrendChartsSectionVertical({ trendData }: { trendData: TrendData }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 0' }}>
-      <div>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: '#3b82f6',
-            marginBottom: 2,
-            textAlign: 'center',
-            fontFamily: FONT_FAMILY,
-          }}
-        >
-          CNL Sign-Ups
-        </div>
-        <TrendChart
-          title="CNL"
-          weeks={trendData.cnlWeeks}
-          values={trendData.cnlValues}
-          target={trendData.cnlTarget}
-          colour="#3b82f6"
-          unit=""
-          compact
-        />
-      </div>
-      <div>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: '#8b5cf6',
-            marginBottom: 2,
-            textAlign: 'center',
-            fontFamily: FONT_FAMILY,
-          }}
-        >
-          Digital Receipts
-        </div>
-        <TrendChart
-          title="Digital Receipts"
-          weeks={trendData.digitalWeeks}
-          values={trendData.digitalValues}
-          target={trendData.digitalTarget}
-          colour="#8b5cf6"
-          unit="%"
-          compact
-        />
-      </div>
-      <div>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: '#10b981',
-            marginBottom: 2,
-            textAlign: 'center',
-            fontFamily: FONT_FAMILY,
-          }}
-        >
-          OIS Revenue
-        </div>
-        <TrendChart
-          title="OIS"
-          weeks={trendData.oisWeeks}
-          values={trendData.oisValues}
-          target={trendData.oisTarget}
-          colour="#10b981"
-          unit="£"
-          compact
-        />
-      </div>
-    </div>
-  );
-}
 
 function TopPerformerSection({ names }: { names: string[] }) {
   if (names.length === 0) return null;
@@ -654,6 +578,183 @@ function PortraitCanvas({
 // Landscape Canvas (new layout at 1920x1080)
 // ============================================================
 
+/** Landscape: horizontal trend row with smaller charts */
+function TrendChartsSectionHorizontal({ trendData }: { trendData: TrendData }) {
+  const labelStyle: React.CSSProperties = {
+    fontSize: 14,
+    fontWeight: 600,
+    marginBottom: 4,
+    textAlign: 'center',
+    fontFamily: FONT_FAMILY,
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: 16, padding: '6px 32px 8px' }}>
+      <div style={{ flex: '1 1 0', minWidth: 0 }}>
+        <div style={{ ...labelStyle, color: '#3b82f6' }}>CNL Sign-Ups</div>
+        <TrendChart
+          title="CNL"
+          weeks={trendData.cnlWeeks}
+          values={trendData.cnlValues}
+          target={trendData.cnlTarget}
+          colour="#3b82f6"
+          unit=""
+          compact
+          height={150}
+        />
+      </div>
+      <div style={{ flex: '1 1 0', minWidth: 0 }}>
+        <div style={{ ...labelStyle, color: '#8b5cf6' }}>Digital Receipts</div>
+        <TrendChart
+          title="Digital Receipts"
+          weeks={trendData.digitalWeeks}
+          values={trendData.digitalValues}
+          target={trendData.digitalTarget}
+          colour="#8b5cf6"
+          unit="%"
+          compact
+          height={150}
+        />
+      </div>
+      <div style={{ flex: '1 1 0', minWidth: 0 }}>
+        <div style={{ ...labelStyle, color: '#10b981' }}>OIS Revenue</div>
+        <TrendChart
+          title="OIS"
+          weeks={trendData.oisWeeks}
+          values={trendData.oisValues}
+          target={trendData.oisTarget}
+          colour="#10b981"
+          unit="£"
+          compact
+          height={150}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Landscape leaderboard: tighter padding for space efficiency */
+function LandscapeLeaderboardsRow({ kpis }: { kpis: ComputedKPIs }) {
+  const thStyle: React.CSSProperties = {
+    padding: '7px 10px',
+    textAlign: 'left',
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#374151',
+    borderBottom: '2px solid #d1d5db',
+    fontFamily: FONT_FAMILY,
+  };
+
+  const tdStyle: React.CSSProperties = {
+    padding: '6px 10px',
+    fontSize: 14,
+    color: '#374151',
+    borderBottom: '1px solid #e5e7eb',
+    fontFamily: FONT_FAMILY,
+  };
+
+  const drEntries = kpis.digitalReceipts.leaderboard;
+  const oisEntries = kpis.ois.leaderboard;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 24,
+        padding: '0 32px',
+        flex: 1,
+        minHeight: 0,
+        alignItems: 'flex-start',
+      }}
+    >
+      {/* Digital Receipts Leaderboard */}
+      {drEntries.length > 0 && (
+        <div style={{ flex: '1 1 0', minWidth: 0 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a5f', marginBottom: 6, fontFamily: FONT_FAMILY }}>
+            Digital Receipts Leaderboard
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, fontFamily: FONT_FAMILY }}>
+            <thead>
+              <tr>
+                <th style={{ ...thStyle, width: 40, textAlign: 'center' }}>Rank</th>
+                <th style={thStyle}>Name</th>
+                <th style={{ ...thStyle, width: 65, textAlign: 'center' }}>Captured</th>
+                <th style={{ ...thStyle, width: 55, textAlign: 'center' }}>Total</th>
+                <th style={{ ...thStyle, width: 50, textAlign: 'center' }}>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {drEntries.map((entry) => {
+                const isMgmt = entry.isManagement;
+                const isTop = !isMgmt && entry.rank === 1;
+                const rowBg = isMgmt ? '#f3f4f6' : isTop ? '#fef3c7' : 'transparent';
+                const textColour = isMgmt ? '#9ca3af' : '#374151';
+                return (
+                  <tr key={entry.name} style={{ backgroundColor: rowBg }}>
+                    <td style={{ ...tdStyle, textAlign: 'center', fontWeight: isTop ? 700 : 400, color: textColour, fontStyle: isMgmt ? 'italic' : 'normal' }}>
+                      {isMgmt ? 'Mgmt' : (<>{isTop ? '\u2b50 ' : ''}{entry.rank}</>)}
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: isTop ? 600 : 400, color: textColour, fontStyle: isMgmt ? 'italic' : 'normal' }}>
+                      {entry.name}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'center', color: textColour }}>{entry.captured}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', color: textColour }}>{entry.totalTransactions}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, color: textColour }}>
+                      {Math.round(entry.percentage)}%
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* OIS Leaderboard + KPI Hero */}
+      <div style={{ flex: '1 1 0', minWidth: 0 }}>
+        {oisEntries.length > 0 && (
+          <>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a5f', marginBottom: 6, fontFamily: FONT_FAMILY }}>
+              OIS Leaderboard
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, fontFamily: FONT_FAMILY }}>
+              <thead>
+                <tr>
+                  <th style={{ ...thStyle, width: 40, textAlign: 'center' }}>Rank</th>
+                  <th style={thStyle}>Name</th>
+                  <th style={{ ...thStyle, width: 90, textAlign: 'right' }}>Revenue (£)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {oisEntries.map((entry) => {
+                  const isMgmt = entry.isManagement;
+                  const isTop = !isMgmt && entry.rank === 1;
+                  const rowBg = isMgmt ? '#f3f4f6' : isTop ? '#fef3c7' : 'transparent';
+                  const textColour = isMgmt ? '#9ca3af' : '#374151';
+                  return (
+                    <tr key={entry.name} style={{ backgroundColor: rowBg }}>
+                      <td style={{ ...tdStyle, textAlign: 'center', fontWeight: isTop ? 700 : 400, color: textColour, fontStyle: isMgmt ? 'italic' : 'normal' }}>
+                        {isMgmt ? 'Mgmt' : (<>{isTop ? '\u2b50 ' : ''}{entry.rank}</>)}
+                      </td>
+                      <td style={{ ...tdStyle, fontWeight: isTop ? 600 : 400, color: textColour, fontStyle: isMgmt ? 'italic' : 'normal' }}>
+                        {entry.name}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: textColour }}>
+                        £{entry.revenue.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
+        )}
+        <TopPerformerSectionCompact names={kpis.topPerformers} />
+      </div>
+    </div>
+  );
+}
+
 function LandscapeCanvas({
   kpis,
   trendData,
@@ -719,31 +820,11 @@ function LandscapeCanvas({
         />
       </div>
 
-      {/* Row 2: Leaderboards (left) + Trends (right) */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 16,
-          padding: '0 0 0',
-          flex: 1,
-          minHeight: 0,
-          alignItems: 'flex-start',
-        }}
-      >
-        {/* Left column: Leaderboards stacked */}
-        <div style={{ flex: '1 1 0', minWidth: 0 }}>
-          <DigitalReceiptsLeaderboard kpis={kpis} />
-          <OISLeaderboard kpis={kpis} />
-        </div>
+      {/* Row 2: 3 Trend charts side-by-side (full width) */}
+      {trendData && <TrendChartsSectionHorizontal trendData={trendData} />}
 
-        {/* Right column: Trend charts + KPI Hero */}
-        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          {trendData && <TrendChartsSectionVertical trendData={trendData} />}
-          <div style={{ padding: '0 32px' }}>
-            <TopPerformerSectionCompact names={kpis.topPerformers} />
-          </div>
-        </div>
-      </div>
+      {/* Row 3: Leaderboards side-by-side + KPI Hero */}
+      <LandscapeLeaderboardsRow kpis={kpis} />
 
       {/* Footer */}
       <FooterSection />
