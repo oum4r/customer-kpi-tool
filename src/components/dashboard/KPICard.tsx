@@ -42,9 +42,6 @@ export function KPICard({
     return String(n);
   };
 
-  // Format: "value / target" — unit always attached to each number
-  const formatValue = () => `${withUnit(value)} / ${withUnit(target)}`;
-
   // Format remaining — consistent phrasing for all units
   const formatRemaining = () => `${withUnit(remaining)} more needed`;
 
@@ -77,8 +74,11 @@ export function KPICard({
         )}
       </div>
 
-      {/* Value display */}
-      <p className="mt-2 text-2xl font-bold text-gray-900">{formatValue()}</p>
+      {/* Value display — stacked to avoid wrapping */}
+      <div className="mt-2">
+        <span className="text-2xl font-bold text-gray-900">{withUnit(value)}</span>
+        <span className="ml-1.5 text-sm font-medium text-gray-400">of {withUnit(target)}</span>
+      </div>
 
       {/* Progress bar */}
       <div className="mt-3">

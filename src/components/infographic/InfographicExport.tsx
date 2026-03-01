@@ -21,15 +21,15 @@ type InfographicFormat = 'portrait' | 'landscape';
 // Helper Components (inline-styled for html2canvas reliability)
 // ============================================================
 
-function ProgressBar({ percentage, colour }: { percentage: number; colour: string }) {
+function ProgressBar({ percentage, colour, height = 16 }: { percentage: number; colour: string; height?: number }) {
   return (
-    <div style={{ width: '100%', height: 16, backgroundColor: '#e5e7eb', borderRadius: 8 }}>
+    <div style={{ width: '100%', height, backgroundColor: '#e5e7eb', borderRadius: height / 2 }}>
       <div
         style={{
           width: `${Math.min(percentage, 100)}%`,
           height: '100%',
           backgroundColor: colour,
-          borderRadius: 6,
+          borderRadius: height / 2 - 1,
         }}
       />
     </div>
@@ -102,6 +102,7 @@ function KPICard({
   rag,
   trend,
   delta,
+  compact,
 }: {
   title: string;
   value: number;
@@ -111,8 +112,14 @@ function KPICard({
   rag: RAGStatus;
   trend: string | null;
   delta: number | null;
+  compact?: boolean;
 }) {
   const colour = ragToColour(rag);
+  const titleSize = compact ? 15 : 20;
+  const valueSize = compact ? 32 : 42;
+  const targetSize = compact ? 14 : 18;
+  const padV = compact ? '16px 14px' : '28px 24px';
+  const barH = compact ? 10 : 16;
 
   return (
     <div
@@ -120,23 +127,28 @@ function KPICard({
         flex: '1 1 0',
         backgroundColor: '#ffffff',
         border: '1px solid #e5e7eb',
-        borderRadius: 14,
-        padding: '28px 24px',
+        borderRadius: compact ? 10 : 14,
+        padding: padV,
         textAlign: 'center',
         fontFamily: FONT_FAMILY,
       }}
     >
-      <div style={{ fontSize: 20, fontWeight: 600, color: '#374151', marginBottom: 10 }}>
+      <div style={{ fontSize: titleSize, fontWeight: 600, color: '#374151', marginBottom: compact ? 6 : 10 }}>
         {title}
       </div>
-      <div style={{ fontSize: 42, fontWeight: 700, color: colour, marginBottom: 6 }}>
-        {withUnit(value, unit)} / {withUnit(target, unit)}
+      <div style={{ marginBottom: compact ? 4 : 6 }}>
+        <span style={{ fontSize: valueSize, fontWeight: 700, color: colour }}>
+          {withUnit(value, unit)}
+        </span>
+        <span style={{ fontSize: targetSize, fontWeight: 500, color: '#9ca3af', marginLeft: 6 }}>
+          of {withUnit(target, unit)}
+        </span>
         <TrendArrow trend={trend} delta={delta} unit={unit} />
       </div>
-      <div style={{ fontSize: 17, color: '#6b7280', marginBottom: 14 }}>
+      <div style={{ fontSize: compact ? 13 : 17, color: '#6b7280', marginBottom: compact ? 8 : 14 }}>
         {Math.round(percentage)}% of target
       </div>
-      <ProgressBar percentage={percentage} colour={colour} />
+      <ProgressBar percentage={percentage} colour={colour} height={barH} />
     </div>
   );
 }
@@ -662,86 +674,74 @@ function LandscapeCanvas({
       {/* Header — slim variant */}
       <HeaderSection weekNumber={kpis.weekNumber} periodName={kpis.periodName} slim />
 
-      {/* Row 1: KPI Cards (left) + Trend Charts (right) */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 16,
-          padding: '16px 32px 8px',
-          alignItems: 'stretch',
-        }}
-      >
-        {/* Left: KPI Cards stacked in a column within a row */}
-        <div style={{ flex: '1 1 0', display: 'flex', gap: 12 }}>
-          <KPICard
-            title="CNL Sign-Ups"
-            value={kpis.cnl.signUps}
-            target={kpis.cnl.target}
-            unit="sign-ups"
-            percentage={kpis.cnl.percentage}
-            rag={kpis.cnl.rag}
-            trend={kpis.cnl.trend}
-            delta={kpis.cnl.delta}
-          />
-          <KPICard
-            title="Digital Receipts"
-            value={Math.round(kpis.digitalReceipts.storePercentage)}
-            target={kpis.digitalReceipts.target}
-            unit="%"
-            percentage={
-              kpis.digitalReceipts.target > 0
-                ? (kpis.digitalReceipts.storePercentage / kpis.digitalReceipts.target) * 100
-                : 0
-            }
-            rag={kpis.digitalReceipts.rag}
-            trend={kpis.digitalReceipts.trend}
-            delta={kpis.digitalReceipts.delta}
-          />
-          <KPICard
-            title="OIS Revenue"
-            value={kpis.ois.storeTotal}
-            target={kpis.ois.target}
-            unit="£"
-            percentage={
-              kpis.ois.target > 0 ? (kpis.ois.storeTotal / kpis.ois.target) * 100 : 0
-            }
-            rag={kpis.ois.rag}
-            trend={kpis.ois.trend}
-            delta={kpis.ois.delta}
-          />
-        </div>
-
-        {/* Right: Trend charts stacked vertically */}
-        {trendData && <TrendChartsSectionVertical trendData={trendData} />}
+      {/* Row 1: 3 KPI Cards side-by-side (full width) */}
+      <div style={{ display: 'flex', gap: 14, padding: '14px 32px 10px' }}>
+        <KPICard
+          title="CNL Sign-Ups"
+          value={kpis.cnl.signUps}
+          target={kpis.cnl.target}
+          unit="sign-ups"
+          percentage={kpis.cnl.percentage}
+          rag={kpis.cnl.rag}
+          trend={kpis.cnl.trend}
+          delta={kpis.cnl.delta}
+          compact
+        />
+        <KPICard
+          title="Digital Receipts"
+          value={Math.round(kpis.digitalReceipts.storePercentage)}
+          target={kpis.digitalReceipts.target}
+          unit="%"
+          percentage={
+            kpis.digitalReceipts.target > 0
+              ? (kpis.digitalReceipts.storePercentage / kpis.digitalReceipts.target) * 100
+              : 0
+          }
+          rag={kpis.digitalReceipts.rag}
+          trend={kpis.digitalReceipts.trend}
+          delta={kpis.digitalReceipts.delta}
+          compact
+        />
+        <KPICard
+          title="OIS Revenue"
+          value={kpis.ois.storeTotal}
+          target={kpis.ois.target}
+          unit="£"
+          percentage={
+            kpis.ois.target > 0 ? (kpis.ois.storeTotal / kpis.ois.target) * 100 : 0
+          }
+          rag={kpis.ois.rag}
+          trend={kpis.ois.trend}
+          delta={kpis.ois.delta}
+          compact
+        />
       </div>
 
-      {/* Row 2: Leaderboards side-by-side */}
+      {/* Row 2: Leaderboards (left) + Trends (right) */}
       <div
         style={{
           display: 'flex',
           gap: 16,
-          padding: '8px 0 0',
+          padding: '0 0 0',
           flex: 1,
           minHeight: 0,
           alignItems: 'flex-start',
         }}
       >
-        {/* Left column: Digital Receipts Leaderboard */}
+        {/* Left column: Leaderboards stacked */}
         <div style={{ flex: '1 1 0', minWidth: 0 }}>
           <DigitalReceiptsLeaderboard kpis={kpis} />
+          <OISLeaderboard kpis={kpis} />
         </div>
 
-        {/* Right column: OIS Leaderboard + KPI Hero below */}
+        {/* Right column: Trend charts + KPI Hero */}
         <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <OISLeaderboard kpis={kpis} />
+          {trendData && <TrendChartsSectionVertical trendData={trendData} />}
           <div style={{ padding: '0 32px' }}>
             <TopPerformerSectionCompact names={kpis.topPerformers} />
           </div>
         </div>
       </div>
-
-      {/* Spacer to push footer down */}
-      <div style={{ flex: '0 0 auto' }} />
 
       {/* Footer */}
       <FooterSection />
