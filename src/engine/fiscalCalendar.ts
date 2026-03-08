@@ -1,84 +1,54 @@
 /**
- * New Look 4-4-5 Retail Fiscal Calendar
+ * 4-4-5 Retail Fiscal Calendar
  *
  * Rules:
- *  - Fiscal year starts on the last Sunday of March each year.
- *  - 13 periods per year following a 4-4-5 quarter pattern:
+ *  - Fiscal year = calendar year, starting at ISO week 1.
+ *  - 12 periods following a 4-4-5 quarter pattern:
  *      Q1: P1 (4wk), P2 (4wk), P3 (5wk)
  *      Q2: P4 (4wk), P5 (4wk), P6 (5wk)
  *      Q3: P7 (4wk), P8 (4wk), P9 (5wk)
  *      Q4: P10 (4wk), P11 (4wk), P12 (5wk)
- *    + P13 absorbs any remaining week (53-week years).
- *  - Week numbers map to ISO weeks (Mon-Sun, 1-53).
+ *  - In 53-week years, P13 absorbs week 53.
  */
 
 /** The 4-4-5 pattern: period lengths in weeks. */
 const PERIOD_LENGTHS = [4, 4, 5, 4, 4, 5, 4, 4, 5, 4, 4, 5] as const;
 
 /**
- * Returns the last Sunday of March for the given calendar year.
+ * Returns the number of ISO weeks in a given calendar year (52 or 53).
  */
-export function getFiscalYearStart(year: number): Date {
-  // Start from March 31 and walk backwards to find Sunday (day === 0)
-  const d = new Date(year, 2, 31); // March 31
-  while (d.getDay() !== 0) {
-    d.setDate(d.getDate() - 1);
-  }
-  return d;
+function isoWeeksInYear(year: number): number {
+  const jan1 = new Date(year, 0, 1).getDay(); // 0=Sun … 4=Thu
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  // 53-week year if Jan 1 is Thursday, or leap year with Jan 1 on Wednesday
+  if (jan1 === 4) return 53;
+  if (isLeap && jan1 === 3) return 53;
+  return 52;
 }
 
 /**
- * Returns the ISO week number (1-53) for a given Date.
- */
-function getISOWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
-
-/**
- * Builds the full fiscal calendar for a given fiscal year, mapping each period
- * to its list of ISO week numbers.
+ * Builds the full fiscal calendar for a given year.
  *
- * @param calendarYear — the calendar year whose last-Sunday-of-March starts the fiscal year.
- * @returns Array of 13 entries: `{ periodNumber, weeks[] }`
+ * @param calendarYear — the calendar year (fiscal year = calendar year)
+ * @returns Array of 12 (or 13) entries: `{ periodNumber, weeks[] }`
  */
 export function buildFiscalYear(calendarYear: number): { periodNumber: number; weeks: number[] }[] {
-  const start = getFiscalYearStart(calendarYear);
-  const startWeek = getISOWeek(start);
-
-  // How many ISO weeks in the calendar year that contains most of the fiscal year?
-  // The fiscal year spans calendarYear (Apr–Dec) and calendarYear+1 (Jan–Mar).
-  // We need to handle week wrapping (e.g. week 52 → week 1).
-
   const periods: { periodNumber: number; weeks: number[] }[] = [];
-  let currentWeek = startWeek;
+  let currentWeek = 1;
 
   for (let p = 0; p < 12; p++) {
     const len = PERIOD_LENGTHS[p];
     const weeks: number[] = [];
     for (let w = 0; w < len; w++) {
       weeks.push(currentWeek);
-      currentWeek = currentWeek >= 53 ? 1 : currentWeek + 1;
+      currentWeek++;
     }
     periods.push({ periodNumber: p + 1, weeks });
   }
 
-  // Period 13: absorb any remaining weeks until the next fiscal year starts
-  const nextStart = getFiscalYearStart(calendarYear + 1);
-  const nextStartWeek = getISOWeek(nextStart);
-
-  const p13Weeks: number[] = [];
-  while (currentWeek !== nextStartWeek) {
-    p13Weeks.push(currentWeek);
-    currentWeek = currentWeek >= 53 ? 1 : currentWeek + 1;
-    // Safety: break if we've gone past 6 weeks (should never happen in a valid calendar)
-    if (p13Weeks.length > 6) break;
-  }
-
-  if (p13Weeks.length > 0) {
-    periods.push({ periodNumber: 13, weeks: p13Weeks });
+  // In 53-week years, P13 absorbs week 53
+  if (isoWeeksInYear(calendarYear) === 53) {
+    periods.push({ periodNumber: 13, weeks: [53] });
   }
 
   return periods;
@@ -93,27 +63,20 @@ export interface FiscalPeriodInfo {
 /**
  * Given an ISO week number, returns the fiscal period it belongs to.
  *
- * Tries the fiscal year starting in the given `calendarYear` first,
- * then falls back to the previous year (for weeks in Jan–Mar that
- * belong to the prior fiscal year).
- *
  * @param weekNumber — ISO week number (1-53)
  * @param calendarYear — defaults to current calendar year
  */
 export function getPeriodForWeek(weekNumber: number, calendarYear?: number): FiscalPeriodInfo {
   const year = calendarYear ?? new Date().getFullYear();
+  const periods = buildFiscalYear(year);
 
-  // Try current year's fiscal calendar first, then previous year
-  for (const y of [year, year - 1]) {
-    const periods = buildFiscalYear(y);
-    for (const period of periods) {
-      if (period.weeks.includes(weekNumber)) {
-        return {
-          periodNumber: period.periodNumber,
-          periodName: `Period ${period.periodNumber}`,
-          weeksInPeriod: period.weeks,
-        };
-      }
+  for (const period of periods) {
+    if (period.weeks.includes(weekNumber)) {
+      return {
+        periodNumber: period.periodNumber,
+        periodName: `Period ${period.periodNumber}`,
+        weeksInPeriod: period.weeks,
+      };
     }
   }
 
