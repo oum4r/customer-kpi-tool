@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import type { DatasetType, ParsedRow, WeekData } from '../../types';
+import { clampWeekNumber, MAX_REVENUE, MAX_CAPTURED, MAX_NAME_LENGTH } from '../../engine/validation';
 import { parseCSV } from '../../parsers/csvParser';
-import { parseExcel, getSheetNames } from '../../parsers/excelParser';
 import { ColumnMapper } from './ColumnMapper';
 import { CnlQuickEntry } from './CnlQuickEntry';
 import { useAppData } from '../../hooks/useAppData';
@@ -18,6 +18,13 @@ const DATASET_OPTIONS: { value: DatasetType; label: string }[] = [
   { value: 'digitalReceipts', label: 'Digital Receipts' },
   { value: 'ois', label: 'OIS (Order in Store)' },
 ];
+
+const ACCEPTED_MIME_TYPES = new Set([
+  'text/csv',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'application/pdf',
+]);
 
 // ============================================================
 // Helpers
@@ -128,6 +135,7 @@ function transformToWeekData(
     const rawWeek = row[mapping['weekNumber']];
     const weekNum = typeof rawWeek === 'number' ? rawWeek : parseInt(String(rawWeek), 10);
     if (isNaN(weekNum)) continue;
+    if (clampWeekNumber(weekNum) === null) continue;
 
     if (!byWeek.has(weekNum)) {
       byWeek.set(weekNum, []);
@@ -149,10 +157,12 @@ function transformToWeekData(
       weekData.digitalReceipts.byPerson = weekRows.map((row) => {
         const rawCaptured = row[mapping['captured']];
         const rawTotal = row[mapping['totalTransactions']];
+        const captured = typeof rawCaptured === 'number' ? rawCaptured : parseInt(String(rawCaptured), 10) || 0;
+        const totalTransactions = typeof rawTotal === 'number' ? rawTotal : parseInt(String(rawTotal), 10) || 0;
         return {
-          name: String(row[mapping['name']] ?? ''),
-          captured: typeof rawCaptured === 'number' ? rawCaptured : parseInt(String(rawCaptured), 10) || 0,
-          totalTransactions: typeof rawTotal === 'number' ? rawTotal : parseInt(String(rawTotal), 10) || 0,
+          name: String(row[mapping['name']] ?? '').slice(0, MAX_NAME_LENGTH),
+          captured: Math.max(0, Math.min(captured, MAX_CAPTURED)),
+          totalTransactions: Math.max(0, Math.min(totalTransactions, MAX_CAPTURED)),
         };
       });
     }
@@ -160,9 +170,10 @@ function transformToWeekData(
     if (datasetType === 'ois') {
       weekData.ois.byPerson = weekRows.map((row) => {
         const rawRevenue = row[mapping['revenue']];
+        const revenue = typeof rawRevenue === 'number' ? rawRevenue : parseFloat(String(rawRevenue)) || 0;
         return {
-          name: String(row[mapping['name']] ?? ''),
-          revenue: typeof rawRevenue === 'number' ? rawRevenue : parseFloat(String(rawRevenue)) || 0,
+          name: String(row[mapping['name']] ?? '').slice(0, MAX_NAME_LENGTH),
+          revenue: Math.max(0, Math.min(revenue, MAX_REVENUE)),
         };
       });
     }
@@ -291,6 +302,12 @@ export function FileUpload() {
       return;
     }
 
+    // Secondary MIME type check (some browsers may leave type empty, so only reject known-bad types)
+    if (file.type && !ACCEPTED_MIME_TYPES.has(file.type)) {
+      setError(`Unexpected file type "${file.type}". Please upload a valid .csv, .xlsx, .xls, or .pdf file.`);
+      return;
+    }
+
     try {
       let rows: ParsedRow[];
       let weekFromFile: number | null = null;
@@ -306,6 +323,7 @@ export function FileUpload() {
       } else if (ext === '.csv') {
         rows = await parseCSV(file);
       } else {
+        const { parseExcel } = await import('../../parsers/excelParser');
         rows = await parseExcel(file, sheet);
       }
 
@@ -434,6 +452,7 @@ export function FileUpload() {
 
       if (isExcelFile(ext)) {
         try {
+          const { getSheetNames } = await import('../../parsers/excelParser');
           const sheets = await getSheetNames(file);
           if (sheets.length > 1) {
             setSheetNames(sheets);
