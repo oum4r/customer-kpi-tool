@@ -59,7 +59,8 @@ export async function readStoreData(storeNumber: string): Promise<AppData | null
   if (error) {
     // PGRST116 = "no rows returned" (not found) — perfectly fine for a new store
     if (error.code === 'PGRST116') return null;
-    throw new Error(`Failed to read store data: ${error.message}`);
+    console.error('Supabase read error:', error.message);
+    throw new Error('Failed to read store data. Please try again.');
   }
 
   if (!data?.data) return null;
@@ -89,6 +90,7 @@ export async function writeStoreData(storeNumber: string, appData: AppData): Pro
     );
 
   if (error) {
-    throw new Error(`Failed to save store data: ${error.message}`);
+    console.error('Supabase write error:', error.message);
+    throw new Error('Failed to save store data. Please try again.');
   }
 }

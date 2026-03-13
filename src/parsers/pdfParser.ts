@@ -1,4 +1,5 @@
 import type { ParsedRow } from '../types';
+import { isSafeObjectKey, validateFileSize } from '../engine/validation';
 
 // Lazy-load pdfjs-dist on first use to avoid bundling ~2.5MB on initial load
 let pdfjsLibCached: typeof import('pdfjs-dist') | null = null;
@@ -158,6 +159,7 @@ function assignToColumn(
 // ============================================================
 
 export async function parsePdf(file: File): Promise<PdfParseResult> {
+  validateFileSize(file);
   const pdfjsLib = await ensurePdfjs();
   const buffer = await readFileAsArrayBuffer(file);
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
@@ -332,6 +334,7 @@ export async function parsePdf(file: File): Promise<PdfParseResult> {
   const headerPositions: HeaderPosition[] = [];
 
   for (const item of headerRow) {
+    if (!isSafeObjectKey(item.text)) continue;
     headerPositions.push({ name: item.text, x: item.x, page: item.page });
   }
 
@@ -339,6 +342,7 @@ export async function parsePdf(file: File): Promise<PdfParseResult> {
   // Page-aware assignToColumn will route overflow-page data items to these
   // headers, preventing them from being mis-assigned to main-page columns.
   for (const overflow of overflowHeaderItems) {
+    if (!isSafeObjectKey(overflow.text)) continue;
     headerPositions.push({ name: overflow.text, x: overflow.x, page: overflow.page });
   }
 
@@ -377,6 +381,7 @@ export async function parsePdf(file: File): Promise<PdfParseResult> {
 
       // Normalise to canonical column name
       const colName = canonicalNames.get(rawColName) ?? rawColName;
+      if (!isSafeObjectKey(colName)) continue;
 
       // If we've already assigned a value to this column (e.g. multi-word
       // name), concatenate with a space — but skip if it's an exact duplicate

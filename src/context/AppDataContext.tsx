@@ -2,6 +2,7 @@ import { createContext, useState, useEffect, useCallback, useRef, type ReactNode
 import type { AppData, WeekData, Targets, Settings } from '../types';
 import { DEFAULT_TARGETS, DEFAULT_SETTINGS } from '../mock/mockData';
 import { readStoreData, writeStoreData } from '../engine/supabaseStorage';
+import { MAX_WEEKS, MAX_EMPLOYEES_PER_WEEK, MAX_NAME_LENGTH, MIN_WEEK_NUMBER, MAX_WEEK_NUMBER } from '../engine/validation';
 
 // ============================================================
 // Context interface
@@ -137,6 +138,15 @@ function isValidAppData(obj: unknown): obj is AppData {
   if (!Array.isArray(data.weeks)) return false;
   if (!data.targets || typeof data.targets !== 'object') return false;
   if (!data.settings || typeof data.settings !== 'object') return false;
+
+  // Data size limits
+  if (data.weeks.length > MAX_WEEKS) return false;
+
+  // Validate week structure
+  for (const week of data.weeks as Record<string, unknown>[]) {
+    if (typeof week.weekNumber !== 'number') return false;
+    if (week.weekNumber < MIN_WEEK_NUMBER || week.weekNumber > MAX_WEEK_NUMBER) return false;
+  }
 
   const targets = data.targets as Record<string, unknown>;
   if (typeof targets.cnlWeekly !== 'number') return false;
@@ -341,6 +351,31 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // Validate required fields
       if (week.weekNumber == null || typeof week.weekNumber !== 'number') {
         throw new Error('Week number is required and must be a number.');
+      }
+
+      if (week.weekNumber < MIN_WEEK_NUMBER || week.weekNumber > MAX_WEEK_NUMBER) {
+        throw new Error(`Week number must be between ${MIN_WEEK_NUMBER} and ${MAX_WEEK_NUMBER}.`);
+      }
+
+      // Cap total number of weeks
+      if (!prev.weeks.find((w) => w.weekNumber === week.weekNumber) && prev.weeks.length >= MAX_WEEKS) {
+        throw new Error(`Maximum of ${MAX_WEEKS} weeks reached. Delete old weeks before adding new ones.`);
+      }
+
+      // Cap employees per dataset
+      if (week.digitalReceipts.byPerson.length > MAX_EMPLOYEES_PER_WEEK) {
+        throw new Error(`Too many employees in digital receipts (max ${MAX_EMPLOYEES_PER_WEEK}).`);
+      }
+      if (week.ois.byPerson.length > MAX_EMPLOYEES_PER_WEEK) {
+        throw new Error(`Too many employees in OIS data (max ${MAX_EMPLOYEES_PER_WEEK}).`);
+      }
+
+      // Truncate names that exceed max length
+      for (const p of week.digitalReceipts.byPerson) {
+        p.name = p.name.slice(0, MAX_NAME_LENGTH);
+      }
+      for (const p of week.ois.byPerson) {
+        p.name = p.name.slice(0, MAX_NAME_LENGTH);
       }
 
       // Check for existing week — smart merge so that uploading one dataset

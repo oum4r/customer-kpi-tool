@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { WeekData } from '../../types';
+import { MAX_SIGN_UPS } from '../../engine/validation';
 import { useAppData } from '../../hooks/useAppData';
 import { getCurrentFiscalWeeks } from '../../engine/fiscalCalendar';
 
@@ -58,7 +59,8 @@ export function CnlQuickEntry() {
   const isSignUpsValid =
     signUps.trim() !== '' &&
     Number.isInteger(parsedSignUps) &&
-    parsedSignUps >= 0;
+    parsedSignUps >= 0 &&
+    parsedSignUps <= MAX_SIGN_UPS;
 
   const canSave = isWeekValid && isSignUpsValid;
 
@@ -154,6 +156,7 @@ export function CnlQuickEntry() {
             id="cnl-sign-ups"
             type="number"
             min={0}
+            max={MAX_SIGN_UPS}
             value={signUps}
             onChange={(e) => setSignUps(e.target.value)}
             placeholder="e.g. 30"

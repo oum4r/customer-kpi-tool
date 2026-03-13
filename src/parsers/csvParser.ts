@@ -1,11 +1,13 @@
 import Papa from 'papaparse';
 import type { ParsedRow } from '../types';
+import { validateFileSize, sanitizeCellValue } from '../engine/validation';
 
 /**
  * Parse a CSV file into an array of row objects keyed by column header.
  * Handles BOM stripping, whitespace trimming, and auto-detects the delimiter.
  */
 export async function parseCSV(file: File): Promise<ParsedRow[]> {
+  validateFileSize(file);
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
@@ -14,7 +16,7 @@ export async function parseCSV(file: File): Promise<ParsedRow[]> {
       transformHeader: (header: string) => header.replace(/^\uFEFF/, '').trim(),
       transform: (value: string) => {
         if (typeof value === 'string') {
-          return value.trim();
+          return sanitizeCellValue(value.trim());
         }
         return value;
       },
