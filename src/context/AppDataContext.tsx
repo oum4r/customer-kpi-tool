@@ -246,6 +246,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       const remote = await readStoreData(storeNumber);
 
       if (remote) {
+        // Validate shape before trusting cloud data
+        if (!isValidAppData(remote)) {
+          console.warn('Cloud data failed validation — ignoring.');
+          return;
+        }
+
         // Guard: if the cloud still holds stale mock/placeholder data,
         // overwrite it with the (clean) local state instead of merging.
         if (isMockData(remote)) {
