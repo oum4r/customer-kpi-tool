@@ -29,6 +29,7 @@ dist-ssr
 # Claude Code local settings
 .claude/
 CLAUDE.md
+claude_files/
 
 # Test data files
 src/test/
