@@ -1,10 +1,17 @@
-import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import type { ParsedRow } from '../types';
 import { validateFileSize, sanitizeCellValue, isSafeObjectKey } from '../engine/validation';
 
 /**
- * Read a File as an ArrayBuffer.
+ * Custom lightweight xlsx parser using JSZip + DOMParser.
+ * Handles files from reporting tools that ExcelJS/SheetJS struggle with
+ * (inline strings, missing sharedStrings.xml, non-standard namespace prefixes).
  */
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -15,38 +22,177 @@ function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
 }
 
 /**
- * Resolve a cell's display value — use the computed result for formula cells,
- * otherwise use the raw value. Returns the primitive value (string, number, etc.).
+ * Strip BOM and parse XML, returning the Document.
+ * Uses a namespace-agnostic approach so `x:row` and `row` both work.
  */
-function getCellValue(cell: ExcelJS.Cell): string | number | boolean | null {
-  const value = cell.value;
-  if (value == null) return '';
-
-  // Formula cells: use the computed result
-  if (typeof value === 'object' && 'result' in value) {
-    return (value as { result: unknown }).result as string | number | boolean | null ?? '';
-  }
-
-  // Date objects → ISO string
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-
-  // Rich text
-  if (typeof value === 'object' && 'richText' in value) {
-    return (value as { richText: { text: string }[] }).richText.map((r) => r.text).join('');
-  }
-
-  // Primitive
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return value;
-  }
-
-  return String(value);
+function parseXml(text: string): Document {
+  // Strip BOM
+  const clean = text.replace(/^\uFEFF/, '');
+  return new DOMParser().parseFromString(clean, 'application/xml');
 }
 
 /**
- * Parse an Excel file (.xlsx / .xls) into an array of row objects.
+ * Namespace-agnostic element selector.
+ * xlsx files may use `<x:row>`, `<row>`, or other prefixes depending on
+ * the tool that generated them. We match by local name.
+ */
+function getElementsByLocalName(parent: Element | Document, localName: string): Element[] {
+  return Array.from(parent.getElementsByTagName('*')).filter(
+    (el) => el.localName === localName,
+  );
+}
+
+function getFirstByLocalName(parent: Element | Document, localName: string): Element | null {
+  return getElementsByLocalName(parent, localName)[0] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Shared strings (standard xlsx files store string values here)
+// ---------------------------------------------------------------------------
+
+async function loadSharedStrings(zip: JSZip): Promise<string[]> {
+  const ssFile = zip.file('xl/sharedStrings.xml');
+  if (!ssFile) return [];
+
+  const xml = parseXml(await ssFile.async('text'));
+  return getElementsByLocalName(xml, 't').map((t) => t.textContent ?? '');
+}
+
+// ---------------------------------------------------------------------------
+// Sheet info from workbook.xml + relationships
+// ---------------------------------------------------------------------------
+
+interface SheetInfo {
+  name: string;
+  rId: string;
+  path: string;
+}
+
+async function loadSheetInfo(zip: JSZip): Promise<SheetInfo[]> {
+  const wbFile = zip.file('xl/workbook.xml');
+  if (!wbFile) throw new Error('Invalid xlsx: missing xl/workbook.xml');
+
+  const wbXml = parseXml(await wbFile.async('text'));
+  const sheetEls = getElementsByLocalName(wbXml, 'sheet');
+
+  // Build rId → file path map from relationships
+  const relsFile = zip.file('xl/_rels/workbook.xml.rels');
+  const relMap = new Map<string, string>();
+
+  if (relsFile) {
+    const relsXml = parseXml(await relsFile.async('text'));
+    for (const rel of getElementsByLocalName(relsXml, 'Relationship')) {
+      const id = rel.getAttribute('Id') ?? '';
+      let target = rel.getAttribute('Target') ?? '';
+      // Normalise: some generators use absolute paths (/xl/...), some use relative
+      target = target.replace(/^\//, '');
+      if (!target.startsWith('xl/')) target = 'xl/' + target;
+      relMap.set(id, target);
+    }
+  }
+
+  return sheetEls.map((el) => {
+    const name = el.getAttribute('name') ?? 'Sheet';
+    // r:id may appear as "r:id" or with a different namespace prefix
+    const rId =
+      el.getAttribute('r:id') ??
+      el.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') ??
+      '';
+    const path = relMap.get(rId) ?? `xl/worksheets/sheet1.xml`;
+    return { name, rId, path };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Cell value extraction
+// ---------------------------------------------------------------------------
+
+function extractCellValue(
+  cell: Element,
+  sharedStrings: string[],
+): string | number {
+  const type = cell.getAttribute('t');
+
+  // Inline string: <is><t>text</t></is>
+  if (type === 'inlineStr') {
+    const tEl = getFirstByLocalName(cell, 't');
+    return tEl?.textContent ?? '';
+  }
+
+  // Shared string reference
+  if (type === 's') {
+    const vEl = getFirstByLocalName(cell, 'v');
+    const idx = parseInt(vEl?.textContent ?? '', 10);
+    return sharedStrings[idx] ?? '';
+  }
+
+  // Boolean
+  if (type === 'b') {
+    const vEl = getFirstByLocalName(cell, 'v');
+    return vEl?.textContent === '1' ? 1 : 0;
+  }
+
+  // Number (default) or explicit 'n'
+  const vEl = getFirstByLocalName(cell, 'v');
+  if (!vEl) return '';
+  const text = vEl.textContent ?? '';
+  const num = Number(text);
+  return isNaN(num) ? text : num;
+}
+
+// ---------------------------------------------------------------------------
+// Parse a single worksheet into rows
+// ---------------------------------------------------------------------------
+
+function parseSheet(
+  doc: Document,
+  sharedStrings: string[],
+): ParsedRow[] {
+  const rowEls = getElementsByLocalName(doc, 'row');
+  if (rowEls.length === 0) return [];
+
+  // First row = headers
+  const headerCells = getElementsByLocalName(rowEls[0], 'c');
+  const headers: string[] = headerCells.map((c) => {
+    const val = extractCellValue(c, sharedStrings);
+    return String(val).trim();
+  });
+
+  // Data rows
+  const rows: ParsedRow[] = [];
+  for (let i = 1; i < rowEls.length; i++) {
+    const cells = getElementsByLocalName(rowEls[i], 'c');
+    const parsed: ParsedRow = {};
+    let hasData = false;
+
+    cells.forEach((cell, colIdx) => {
+      const key = headers[colIdx];
+      if (!key) return;
+      if (!isSafeObjectKey(key)) return;
+
+      const raw = extractCellValue(cell, sharedStrings);
+      if (typeof raw === 'string') {
+        parsed[key] = sanitizeCellValue(raw.trim());
+      } else {
+        parsed[key] = raw;
+      }
+      if (raw !== '' && raw != null) hasData = true;
+    });
+
+    if (hasData) {
+      rows.push(parsed);
+    }
+  }
+
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Public API (same interface as the old ExcelJS-based parser)
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse an Excel file (.xlsx) into an array of row objects.
  * If sheetName is provided, that sheet is used; otherwise the first sheet is parsed.
  */
 export async function parseExcel(
@@ -55,63 +201,32 @@ export async function parseExcel(
 ): Promise<ParsedRow[]> {
   validateFileSize(file);
   const buffer = await readFileAsArrayBuffer(file);
+  const zip = await JSZip.loadAsync(buffer);
 
-  const workbook = new ExcelJS.Workbook();
-  // ExcelJS browser build requires a Uint8Array (not raw ArrayBuffer)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await workbook.xlsx.load(new Uint8Array(buffer) as any);
+  const sharedStrings = await loadSharedStrings(zip);
+  const sheets = await loadSheetInfo(zip);
 
-  const worksheetNames = workbook.worksheets.map((ws) => ws.name);
-  const targetSheet = sheetName ?? worksheetNames[0];
+  if (sheets.length === 0) {
+    throw new Error('The workbook contains no sheets.');
+  }
 
-  if (!targetSheet || !worksheetNames.includes(targetSheet)) {
+  const target = sheetName
+    ? sheets.find((s) => s.name === sheetName)
+    : sheets[0];
+
+  if (!target) {
     throw new Error(
-      sheetName
-        ? `Sheet "${sheetName}" not found. Available sheets: ${worksheetNames.join(', ')}`
-        : 'The workbook contains no sheets.',
+      `Sheet "${sheetName}" not found. Available sheets: ${sheets.map((s) => s.name).join(', ')}`,
     );
   }
 
-  const worksheet = workbook.getWorksheet(targetSheet)!;
+  const sheetFile = zip.file(target.path);
+  if (!sheetFile) {
+    throw new Error(`Sheet file not found in archive: ${target.path}`);
+  }
 
-  // Row 1 is the header row
-  const headerRow = worksheet.getRow(1);
-  const headers: string[] = [];
-  headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-    const raw = getCellValue(cell);
-    headers[colNumber] = typeof raw === 'string' ? raw.trim() : String(raw ?? '').trim();
-  });
-
-  // Build data rows (row 2 onwards)
-  const rows: ParsedRow[] = [];
-  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-    if (rowNumber === 1) return; // skip header
-
-    const parsed: ParsedRow = {};
-    let hasData = false;
-
-    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-      const key = headers[colNumber];
-      if (!key) return;
-      if (!isSafeObjectKey(key)) return;
-
-      const raw = getCellValue(cell);
-      if (typeof raw === 'string') {
-        parsed[key] = sanitizeCellValue(raw.trim());
-      } else if (typeof raw === 'boolean') {
-        parsed[key] = raw ? 1 : 0;
-      } else {
-        parsed[key] = raw ?? '';
-      }
-      if (raw !== '' && raw != null) hasData = true;
-    });
-
-    if (hasData) {
-      rows.push(parsed);
-    }
-  });
-
-  return rows;
+  const sheetXml = parseXml(await sheetFile.async('text'));
+  return parseSheet(sheetXml, sharedStrings);
 }
 
 /**
@@ -120,11 +235,7 @@ export async function parseExcel(
 export async function getSheetNames(file: File): Promise<string[]> {
   validateFileSize(file);
   const buffer = await readFileAsArrayBuffer(file);
-
-  const workbook = new ExcelJS.Workbook();
-  // ExcelJS browser build requires a Uint8Array (not raw ArrayBuffer)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await workbook.xlsx.load(new Uint8Array(buffer) as any);
-
-  return workbook.worksheets.map((ws) => ws.name);
+  const zip = await JSZip.loadAsync(buffer);
+  const sheets = await loadSheetInfo(zip);
+  return sheets.map((s) => s.name);
 }
