@@ -369,6 +369,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
 
       // Cap employees per dataset
+      if ((week.cnl.byPerson?.length ?? 0) > MAX_EMPLOYEES_PER_WEEK) {
+        throw new Error(`Too many employees in CNL data (max ${MAX_EMPLOYEES_PER_WEEK}).`);
+      }
       if (week.digitalReceipts.byPerson.length > MAX_EMPLOYEES_PER_WEEK) {
         throw new Error(`Too many employees in digital receipts (max ${MAX_EMPLOYEES_PER_WEEK}).`);
       }
@@ -377,6 +380,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
 
       // Truncate names that exceed max length
+      if (week.cnl.byPerson) {
+        for (const p of week.cnl.byPerson) {
+          p.name = p.name.slice(0, MAX_NAME_LENGTH);
+        }
+      }
       for (const p of week.digitalReceipts.byPerson) {
         p.name = p.name.slice(0, MAX_NAME_LENGTH);
       }
@@ -390,7 +398,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       if (existing) {
         const merged: WeekData = { ...existing };
         // Only overwrite a dataset if the incoming data is non-empty
-        if (week.cnl.signUps > 0) merged.cnl = week.cnl;
+        if (week.cnl.signUps > 0 || (week.cnl.byPerson?.length ?? 0) > 0) merged.cnl = week.cnl;
         if (week.digitalReceipts.byPerson.length > 0) merged.digitalReceipts = week.digitalReceipts;
         if (week.ois.byPerson.length > 0) merged.ois = week.ois;
         return {

@@ -8,7 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, R
 
 interface EmployeeHistoryModalProps {
   employeeName: string;
-  datasetType: 'digitalReceipts' | 'ois';
+  datasetType: 'cnl' | 'digitalReceipts' | 'ois';
   onClose: () => void;
 }
 
@@ -33,7 +33,26 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
     const sorted = [...appData.weeks].sort((a, b) => a.weekNumber - b.weekNumber);
     const results: WeekMetric[] = [];
 
-    if (datasetType === 'digitalReceipts') {
+    if (datasetType === 'cnl') {
+      for (const week of sorted) {
+        const person = week.cnl.byPerson?.find(
+          (p) => p.name === employeeName,
+        );
+        if (person) {
+          results.push({
+            weekNumber: week.weekNumber,
+            value: person.signUps,
+            label: `${person.signUps}`,
+          });
+        }
+      }
+      return {
+        metrics: results,
+        unit: 'sign-ups',
+        colour: '#3b82f6',
+        target: appData.targets.cnlWeekly,
+      };
+    } else if (datasetType === 'digitalReceipts') {
       for (const week of sorted) {
         const person = week.digitalReceipts.byPerson.find(
           (p) => p.name === employeeName,
@@ -86,7 +105,9 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
     const direction = delta > 0 ? '↑' : delta < 0 ? '↓' : '→';
     const deltaLabel = datasetType === 'ois'
       ? `${delta > 0 ? '+' : ''}£${delta.toLocaleString()}`
-      : `${delta > 0 ? '+' : ''}${delta}%`;
+      : datasetType === 'cnl'
+        ? `${delta > 0 ? '+' : ''}${delta}`
+        : `${delta > 0 ? '+' : ''}${delta}%`;
     return { direction, deltaLabel, isPositive: delta > 0 };
   }, [metrics, datasetType]);
 
@@ -95,9 +116,11 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
     [metrics],
   );
 
-  const title = datasetType === 'digitalReceipts'
-    ? 'Digital Receipts History'
-    : 'OIS Revenue History';
+  const title = datasetType === 'cnl'
+    ? 'Club New Look History'
+    : datasetType === 'digitalReceipts'
+      ? 'Digital Receipts History'
+      : 'OIS Revenue History';
 
   return (
     // Backdrop
@@ -163,13 +186,17 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
                       <YAxis
                         tick={{ fontSize: 12, fill: '#6b7280' }}
                         tickFormatter={(v: number) =>
-                          unit === '£' ? `£${v}` : `${v}%`
+                          unit === '£' ? `£${v}` : unit === '%' ? `${v}%` : `${v}`
                         }
                       />
                       <Tooltip
                         formatter={(v) => {
                           const num = Number(v);
-                          return unit === '£' ? [`£${num.toLocaleString()}`, 'Revenue'] : [`${num}%`, 'Capture Rate'];
+                          return unit === '£'
+                            ? [`£${num.toLocaleString()}`, 'Revenue']
+                            : unit === '%'
+                              ? [`${num}%`, 'Capture Rate']
+                              : [`${num}`, 'Sign-Ups'];
                         }}
                       />
                       <ReferenceLine
@@ -198,7 +225,7 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
                     <tr className="border-b border-gray-200">
                       <th className="px-3 py-2 font-semibold text-gray-500">Week</th>
                       <th className="px-3 py-2 font-semibold text-gray-500 text-right">
-                        {datasetType === 'digitalReceipts' ? 'Capture %' : 'Revenue'}
+                        {datasetType === 'cnl' ? 'Sign-Ups' : datasetType === 'digitalReceipts' ? 'Capture %' : 'Revenue'}
                       </th>
                       <th className="px-3 py-2 font-semibold text-gray-500 text-right">vs Target</th>
                     </tr>
@@ -208,7 +235,9 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
                       const diff = m.value - target;
                       const diffLabel = datasetType === 'ois'
                         ? `${diff >= 0 ? '+' : ''}£${diff.toLocaleString()}`
-                        : `${diff >= 0 ? '+' : ''}${diff}%`;
+                        : datasetType === 'cnl'
+                          ? `${diff >= 0 ? '+' : ''}${diff}`
+                          : `${diff >= 0 ? '+' : ''}${diff}%`;
                       const diffColour = diff >= 0 ? 'text-green-600' : 'text-red-600';
 
                       // Week-over-week change

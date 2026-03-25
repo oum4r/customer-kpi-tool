@@ -22,7 +22,15 @@ export const DEFAULT_SETTINGS: Settings = {
 export const MOCK_WEEK_DATA: WeekData[] = [
   {
     weekNumber: 44,
-    cnl: { signUps: 12 },
+    cnl: {
+      signUps: 12,
+      byPerson: [
+        { name: 'Sarah', signUps: 4 },
+        { name: 'James', signUps: 3 },
+        { name: 'Priya', signUps: 3 },
+        { name: 'Tom', signUps: 2 },
+      ],
+    },
     digitalReceipts: {
       byPerson: [
         { name: 'Sarah', captured: 35, totalTransactions: 50 },
@@ -42,7 +50,15 @@ export const MOCK_WEEK_DATA: WeekData[] = [
   },
   {
     weekNumber: 45,
-    cnl: { signUps: 14 },
+    cnl: {
+      signUps: 14,
+      byPerson: [
+        { name: 'Sarah', signUps: 5 },
+        { name: 'James', signUps: 4 },
+        { name: 'Priya', signUps: 3 },
+        { name: 'Tom', signUps: 2 },
+      ],
+    },
     digitalReceipts: {
       byPerson: [
         { name: 'Sarah', captured: 40, totalTransactions: 48 },
@@ -62,7 +78,15 @@ export const MOCK_WEEK_DATA: WeekData[] = [
   },
   {
     weekNumber: 46,
-    cnl: { signUps: 18 },
+    cnl: {
+      signUps: 18,
+      byPerson: [
+        { name: 'Sarah', signUps: 7 },
+        { name: 'James', signUps: 5 },
+        { name: 'Priya', signUps: 4 },
+        { name: 'Tom', signUps: 2 },
+      ],
+    },
     digitalReceipts: {
       byPerson: [
         { name: 'Sarah', captured: 45, totalTransactions: 49 },
@@ -92,6 +116,12 @@ export const MOCK_COMPUTED_KPIS: ComputedKPIs = {
     rag: 'red',
     trend: '\u2191',
     delta: 4,
+    leaderboard: [
+      { rank: 1, name: 'Sarah', signUps: 7, isManagement: false },
+      { rank: 2, name: 'James', signUps: 5, isManagement: false },
+      { rank: 3, name: 'Priya', signUps: 4, isManagement: false },
+      { rank: 4, name: 'Tom', signUps: 2, isManagement: false },
+    ],
   },
   digitalReceipts: {
     storePercentage: 74,

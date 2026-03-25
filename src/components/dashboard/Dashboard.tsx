@@ -11,6 +11,15 @@ import { WeekSelector } from './WeekSelector';
 import { EmployeeHistoryModal } from './EmployeeHistoryModal';
 
 /**
+ * Column definitions for the Club New Look leaderboard.
+ */
+const cnlColumns: LeaderboardColumn[] = [
+  { key: 'rank', label: 'Rank' },
+  { key: 'name', label: 'Name' },
+  { key: 'signUps', label: 'Sign-Ups' },
+];
+
+/**
  * Column definitions for the Digital Receipts leaderboard.
  */
 const digitalReceiptsColumns: LeaderboardColumn[] = [
@@ -47,7 +56,7 @@ export function Dashboard() {
   const kpis = useComputedKPIs(currentWeek ?? undefined);
   const trendData = useTrendData();
   const showTrend = appData.settings.showTrendIndicators;
-  const [historyEmployee, setHistoryEmployee] = useState<{ name: string; type: 'digitalReceipts' | 'ois' } | null>(null);
+  const [historyEmployee, setHistoryEmployee] = useState<{ name: string; type: 'cnl' | 'digitalReceipts' | 'ois' } | null>(null);
 
   const availableWeeks = useMemo(
     () => appData.weeks.map((w) => w.weekNumber).sort((a, b) => a - b),
@@ -127,6 +136,15 @@ export function Dashboard() {
 
       {/* Leaderboards */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {kpis.cnl.leaderboard.length > 0 && (
+          <Leaderboard
+            title="Club New Look Leaderboard"
+            columns={cnlColumns}
+            data={kpis.cnl.leaderboard}
+            highlightTopPerformer
+            onNameClick={(name) => setHistoryEmployee({ name, type: 'cnl' })}
+          />
+        )}
         <Leaderboard
           title="Digital Receipts Leaderboard"
           columns={digitalReceiptsColumns}

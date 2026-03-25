@@ -4,6 +4,7 @@ import type {
   WeekData,
   Targets,
   TrendDirection,
+  CnlLeaderboardEntry,
   DigitalReceiptLeaderboardEntry,
   OISLeaderboardEntry,
 } from '../types';
@@ -148,6 +149,43 @@ function buildOISLeaderboard(
 }
 
 /**
+ * Build the CNL leaderboard, sorted by signUps descending.
+ * Management names are appended at the bottom, unranked and flagged.
+ */
+function buildCnlLeaderboard(
+  byPerson: NonNullable<WeekData['cnl']['byPerson']>,
+  managementNames: string[],
+): CnlLeaderboardEntry[] {
+  const mgmtSet = new Set(managementNames.map((n) => n.toLowerCase()));
+
+  const entries = [...byPerson]
+    .sort((a, b) => b.signUps - a.signUps)
+    .map((p) => {
+      const displayName = stripEmployeeNumber(p.name);
+      return {
+        name: displayName,
+        signUps: p.signUps,
+        isManagement: mgmtSet.has(displayName.toLowerCase()),
+      };
+    });
+
+  const advisors = entries.filter((e) => !e.isManagement);
+  const management = entries.filter((e) => e.isManagement);
+
+  const rankedAdvisors: CnlLeaderboardEntry[] = advisors.map((entry, index) => ({
+    rank: index + 1,
+    ...entry,
+  }));
+
+  const unrankedMgmt: CnlLeaderboardEntry[] = management.map((entry) => ({
+    rank: null,
+    ...entry,
+  }));
+
+  return [...rankedAdvisors, ...unrankedMgmt];
+}
+
+/**
  * Find the previous week relative to the given weekNumber from the full dataset.
  * "Previous" means the week with the largest weekNumber that is still less than the given one.
  */
@@ -166,14 +204,22 @@ function findPreviousWeek(
  * A top performer is any person who holds rank 1 in the most leaderboards.
  */
 function computeTopPerformers(
+  cnlLeaderboard: CnlLeaderboardEntry[],
   drLeaderboard: DigitalReceiptLeaderboardEntry[],
   oisLeaderboard: OISLeaderboardEntry[],
 ): string[] {
-  if (drLeaderboard.length === 0 && oisLeaderboard.length === 0) {
+  if (cnlLeaderboard.length === 0 && drLeaderboard.length === 0 && oisLeaderboard.length === 0) {
     return [];
   }
 
   const rank1Counts = new Map<string, number>();
+
+  // Count rank-1 appearances in CNL
+  for (const entry of cnlLeaderboard) {
+    if (entry.rank === 1) {
+      rank1Counts.set(entry.name, (rank1Counts.get(entry.name) ?? 0) + 1);
+    }
+  }
 
   // Count rank-1 appearances in digital receipts
   for (const entry of drLeaderboard) {
@@ -219,10 +265,16 @@ export function computeKPIs(
   const previousWeek = findPreviousWeek(weekData.weekNumber, allWeeks);
 
   // --- CNL ---
-  const cnlSignUps = weekData.cnl.signUps;
+  const cnlByPerson = weekData.cnl.byPerson;
+  const cnlSignUps = cnlByPerson && cnlByPerson.length > 0
+    ? cnlByPerson.reduce((sum, p) => sum + p.signUps, 0)
+    : weekData.cnl.signUps;
   const cnlTarget = targets.cnlWeekly;
   const cnlPercentage = cnlTarget === 0 ? 0 : Math.round((cnlSignUps / cnlTarget) * 100);
   const cnlRag = calculateRAG(cnlSignUps, cnlTarget);
+  const cnlLeaderboard = cnlByPerson && cnlByPerson.length > 0
+    ? buildCnlLeaderboard(cnlByPerson, managementNames)
+    : [];
   const previousCnlSignUps = previousWeek ? previousWeek.cnl.signUps : null;
   const cnlTrend = calculateTrend(cnlSignUps, previousCnlSignUps, 1);
   const cnlDelta = calculateDelta(cnlSignUps, previousCnlSignUps);
@@ -252,7 +304,7 @@ export function computeKPIs(
   const oisDelta = calculateDelta(oisStoreTotal, previousOisTotal);
 
   // --- Top Performers ---
-  const topPerformers = computeTopPerformers(drLeaderboard, oisLeaderboard);
+  const topPerformers = computeTopPerformers(cnlLeaderboard, drLeaderboard, oisLeaderboard);
 
   return {
     cnl: {
@@ -262,6 +314,7 @@ export function computeKPIs(
       rag: cnlRag,
       trend: cnlTrend,
       delta: cnlDelta,
+      leaderboard: cnlLeaderboard,
     },
     digitalReceipts: {
       storePercentage: drStorePercentage,

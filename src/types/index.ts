@@ -14,6 +14,10 @@ export interface WeekData {
   weekNumber: number;
   cnl: {
     signUps: number;
+    byPerson?: {
+      name: string;
+      signUps: number;
+    }[];
   };
   digitalReceipts: {
     byPerson: {
@@ -69,6 +73,13 @@ export interface DigitalReceiptLeaderboardEntry {
   isManagement: boolean;
 }
 
+export interface CnlLeaderboardEntry {
+  rank: number | null;
+  name: string;
+  signUps: number;
+  isManagement: boolean;
+}
+
 export interface OISLeaderboardEntry {
   rank: number | null;
   name: string;
@@ -84,6 +95,7 @@ export interface ComputedKPIs {
     rag: RAGStatus;
     trend: TrendDirection;
     delta: number | null;
+    leaderboard: CnlLeaderboardEntry[];
   };
   digitalReceipts: {
     storePercentage: number;
