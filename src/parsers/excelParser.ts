@@ -57,7 +57,9 @@ export async function parseExcel(
   const buffer = await readFileAsArrayBuffer(file);
 
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
+  // ExcelJS browser build requires a Uint8Array (not raw ArrayBuffer)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await workbook.xlsx.load(new Uint8Array(buffer) as any);
 
   const worksheetNames = workbook.worksheets.map((ws) => ws.name);
   const targetSheet = sheetName ?? worksheetNames[0];
@@ -120,7 +122,9 @@ export async function getSheetNames(file: File): Promise<string[]> {
   const buffer = await readFileAsArrayBuffer(file);
 
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
+  // ExcelJS browser build requires a Uint8Array (not raw ArrayBuffer)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await workbook.xlsx.load(new Uint8Array(buffer) as any);
 
   return workbook.worksheets.map((ws) => ws.name);
 }
