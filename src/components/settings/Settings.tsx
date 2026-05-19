@@ -86,9 +86,12 @@ export function Settings() {
         // 5. Commit the store number to state (auto-sync won't fire)
         updateSettings({ ...appData.settings, storeNumber: trimmed });
 
-        // 6. If cloud had data, pull it in
+        // 6. If cloud had data, pull it in.
+        // Pass trimmed explicitly — appData.settings.storeNumber may not
+        // have updated yet (React batches state), so the closure in
+        // loadFromCloud would read the OLD store number without this.
         if (cloudHasData) {
-          await loadFromCloud();
+          await loadFromCloud(trimmed);
         }
 
         setConnectionStatus('connected');
@@ -132,6 +135,15 @@ export function Settings() {
   // ---- Handlers ----
 
   const handleSaveTargets = () => {
+    const isValid = (n: number) => Number.isFinite(n) && n > 0;
+    if (!isValid(cnlTarget) || !isValid(digitalTarget) || !isValid(oisTarget)) {
+      alert('All targets must be greater than zero.');
+      return;
+    }
+    if (digitalTarget > 100) {
+      alert('Digital Receipt target cannot exceed 100%.');
+      return;
+    }
     updateTargets({
       cnlWeekly: cnlTarget,
       digitalReceiptPercentage: digitalTarget,
@@ -297,6 +309,7 @@ export function Settings() {
             <option value="encouraging">Encouraging</option>
             <option value="neutral">Neutral</option>
             <option value="coaching">Coaching</option>
+            <option value="stern">Stern</option>
           </select>
         </div>
       </section>
@@ -377,7 +390,7 @@ export function Settings() {
               type="button"
               className={btnSecondary}
               disabled={isSyncing}
-              onClick={loadFromCloud}
+              onClick={() => loadFromCloud()}
             >
               Pull from Cloud
             </button>

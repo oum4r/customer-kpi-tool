@@ -28,8 +28,13 @@ export interface AppDataContextValue {
   syncError: string | null;
   /** Manually push current data to the cloud */
   syncToCloud: () => Promise<void>;
-  /** Manually pull data from the cloud and merge into local state */
-  loadFromCloud: () => Promise<void>;
+  /**
+   * Manually pull data from the cloud and merge into local state.
+   * Pass an explicit storeNumber to override the one currently in appData
+   * (needed when calling immediately after updateSettings, before React
+   * has re-rendered with the new store number).
+   */
+  loadFromCloud: (storeNumber?: string) => Promise<void>;
   /** Temporarily suppress auto-sync (e.g. during the connect flow) */
   pauseAutoSync: () => void;
   /** Resume auto-sync after it was paused */
@@ -232,10 +237,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
    * Pull data from Supabase and merge it into local state.
    * Remote data wins for all fields except the local storeNumber,
    * which is preserved so the user never loses their identifier.
+   *
+   * @param overrideStoreNumber - If provided, use this store number instead of
+   *   the one in appData. Pass this when calling immediately after updateSettings
+   *   so the new store number is used before React re-renders.
    */
-  const loadFromCloud = useCallback(async () => {
+  const loadFromCloud = useCallback(async (overrideStoreNumber?: string) => {
     const data = appData;
-    const storeNumber = data.settings.storeNumber;
+    // Use the override if provided — this prevents the stale-closure bug when
+    // loadFromCloud is called right after updateSettings with a new store number.
+    const storeNumber = overrideStoreNumber ?? data.settings.storeNumber;
 
     if (!storeNumber) return; // Not configured — nothing to do
 
@@ -436,19 +447,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const deleteWeek = useCallback((weekNumber: number) => {
-    setAppDataState((prev) => ({
-      ...prev,
-      weeks: prev.weeks.filter((w) => w.weekNumber !== weekNumber),
-    }));
-    // If the deleted week was currently selected, switch to the most recent remaining
-    setCurrentWeek((prev) => {
-      if (prev !== weekNumber) return prev;
-      const remaining = appData.weeks
-        .filter((w) => w.weekNumber !== weekNumber)
-        .sort((a, b) => b.weekNumber - a.weekNumber);
-      return remaining.length > 0 ? remaining[0].weekNumber : null;
+    setAppDataState((prev) => {
+      const remainingWeeks = prev.weeks.filter((w) => w.weekNumber !== weekNumber);
+      // If the deleted week was currently selected, switch to the most recent remaining.
+      // Done inside this updater so rapid successive deletes always see the freshest list.
+      setCurrentWeek((cw) => {
+        if (cw !== weekNumber) return cw;
+        const sorted = [...remainingWeeks].sort((a, b) => b.weekNumber - a.weekNumber);
+        return sorted.length > 0 ? sorted[0].weekNumber : null;
+      });
+      return { ...prev, weeks: remainingWeeks };
     });
-  }, [appData.weeks]);
+  }, []);
 
   const exportData = useCallback((): string => {
     const json = JSON.stringify(appData, null, 2);

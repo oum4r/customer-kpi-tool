@@ -83,7 +83,7 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
           results.push({
             weekNumber: week.weekNumber,
             value: person.revenue,
-            label: `£${person.revenue.toLocaleString()}`,
+            label: `£${person.revenue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           });
         }
       }
@@ -104,7 +104,7 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
     const delta = last - first;
     const direction = delta > 0 ? '↑' : delta < 0 ? '↓' : '→';
     const deltaLabel = datasetType === 'ois'
-      ? `${delta > 0 ? '+' : ''}£${delta.toLocaleString()}`
+      ? `${delta > 0 ? '+' : ''}£${Math.abs(delta).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : datasetType === 'cnl'
         ? `${delta > 0 ? '+' : ''}${delta}`
         : `${delta > 0 ? '+' : ''}${delta}%`;
@@ -193,7 +193,7 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
                         formatter={(v) => {
                           const num = Number(v);
                           return unit === '£'
-                            ? [`£${num.toLocaleString()}`, 'Revenue']
+                            ? [`£${num.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Revenue']
                             : unit === '%'
                               ? [`${num}%`, 'Capture Rate']
                               : [`${num}`, 'Sign-Ups'];
@@ -234,7 +234,7 @@ export function EmployeeHistoryModal({ employeeName, datasetType, onClose }: Emp
                     {metrics.map((m, idx) => {
                       const diff = m.value - target;
                       const diffLabel = datasetType === 'ois'
-                        ? `${diff >= 0 ? '+' : ''}£${diff.toLocaleString()}`
+                        ? `${diff >= 0 ? '+' : ''}£${Math.abs(diff).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                         : datasetType === 'cnl'
                           ? `${diff >= 0 ? '+' : ''}${diff}`
                           : `${diff >= 0 ? '+' : ''}${diff}%`;

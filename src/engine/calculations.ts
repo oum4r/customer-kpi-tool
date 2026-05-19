@@ -202,13 +202,24 @@ function findPreviousWeek(
 /**
  * Determine the top performer(s) across digital receipts and OIS leaderboards.
  * A top performer is any person who holds rank 1 in the most leaderboards.
+ *
+ * Returns empty array (no hero) if no non-management advisor on the digital receipts
+ * leaderboard meets the digitalReceiptsTarget.
  */
 function computeTopPerformers(
   cnlLeaderboard: CnlLeaderboardEntry[],
   drLeaderboard: DigitalReceiptLeaderboardEntry[],
   oisLeaderboard: OISLeaderboardEntry[],
+  digitalReceiptsTarget: number,
 ): string[] {
   if (cnlLeaderboard.length === 0 && drLeaderboard.length === 0 && oisLeaderboard.length === 0) {
+    return [];
+  }
+
+  // Gate: the top-ranked advisor on digital receipts must meet the target.
+  // Find the first non-management ranked entry.
+  const topDRAdvisor = drLeaderboard.find((e) => !e.isManagement && e.rank !== null);
+  if (!topDRAdvisor || topDRAdvisor.percentage < digitalReceiptsTarget) {
     return [];
   }
 
@@ -304,7 +315,7 @@ export function computeKPIs(
   const oisDelta = calculateDelta(oisStoreTotal, previousOisTotal);
 
   // --- Top Performers ---
-  const topPerformers = computeTopPerformers(cnlLeaderboard, drLeaderboard, oisLeaderboard);
+  const topPerformers = computeTopPerformers(cnlLeaderboard, drLeaderboard, oisLeaderboard, drTarget);
 
   return {
     cnl: {

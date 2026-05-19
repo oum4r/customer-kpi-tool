@@ -39,13 +39,13 @@ function ProgressBar({ percentage, colour, height = 16 }: { percentage: number; 
 function formatDelta(delta: number | null, unit: string): string {
   if (delta == null) return '';
   const sign = delta > 0 ? '+' : '';
-  if (unit === '£') return `${sign}£${Math.abs(delta)}`;
+  if (unit === '£') return `${sign}£${Math.abs(delta).toFixed(2)}`;
   if (unit === '%') return `${sign}${delta}%`;
   return `${sign}${delta}`;
 }
 
 function withUnit(n: number, unit: string): string {
-  if (unit === '£') return `£${n}`;
+  if (unit === '£') return `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   if (unit === '%') return `${n}%`;
   return String(n);
 }
@@ -351,7 +351,7 @@ function OISLeaderboard({ kpis }: { kpis: ComputedKPIs }) {
                   {entry.name}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: textColour }}>
-                  £{entry.revenue.toLocaleString()}
+                  £{entry.revenue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
               </tr>
             );
@@ -740,7 +740,7 @@ function LandscapeLeaderboardsRow({ kpis }: { kpis: ComputedKPIs }) {
                         {entry.name}
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: textColour }}>
-                        £{entry.revenue.toLocaleString()}
+                        £{entry.revenue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                     </tr>
                   );

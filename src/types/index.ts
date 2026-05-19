@@ -40,7 +40,7 @@ export interface Targets {
   oisWeekly: number;
 }
 
-export type MessageTone = 'encouraging' | 'neutral' | 'coaching';
+export type MessageTone = 'encouraging' | 'neutral' | 'coaching' | 'stern';
 
 export interface Settings {
   showTrendIndicators: boolean;

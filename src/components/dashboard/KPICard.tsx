@@ -35,9 +35,9 @@ export function KPICard({
   const isCurrency = unit === '£';
   const isPercent = unit === '%';
 
-  /** Attach the unit to a number: £200, 78%, 33 */
+  /** Attach the unit to a number: £200.00, 78%, 33 */
   const withUnit = (n: number) => {
-    if (isCurrency) return `£${n}`;
+    if (isCurrency) return `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (isPercent) return `${n}%`;
     return String(n);
   };
@@ -56,7 +56,7 @@ export function KPICard({
   const formatDelta = () => {
     if (delta === null) return '';
     const sign = delta > 0 ? '+' : '';
-    if (isCurrency) return `${sign}£${Math.abs(delta)}`;
+    if (isCurrency) return `${sign}£${Math.abs(delta).toFixed(2)}`;
     if (isPercent) return `${sign}${delta}%`;
     return `${sign}${delta}`;
   };

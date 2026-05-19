@@ -43,7 +43,7 @@ const oisColumns: LeaderboardColumn[] = [
   {
     key: 'revenue',
     label: 'Revenue (£)',
-    format: (v) => `£${v}`,
+    format: (v) => `£${(v as number).toFixed(2)}`,
   },
 ];
 
