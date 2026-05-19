@@ -29,6 +29,12 @@ const COACHING_RED_BY_KPI: Record<string, string> = {
   ois: 'Actively offer to check online stock for any unavailable items.',
 };
 
+const STERN_RED_BY_KPI: Record<string, string> = {
+  cnl: 'Unacceptable. Every team member must ask every customer about Club New Look — no exceptions.',
+  digitalReceipts: 'Unacceptable. Every customer must be asked for their email at the till — this is non-negotiable.',
+  ois: 'Unacceptable. Every customer with an out-of-stock item must be offered an online order — no exceptions.',
+};
+
 // ============================================================
 // calculateRemaining
 // ============================================================
@@ -98,6 +104,20 @@ export function getEncouragement(
     return tip
       ? `Below target. Key focus area: ${tip}`
       : "Below target. Key focus area: let's regroup and push harder this week.";
+  }
+
+  if (tone === 'stern') {
+    if (rag === 'green') {
+      return 'Target met. This is the standard — maintain it.';
+    }
+    if (rag === 'amber') {
+      return remaining !== undefined
+        ? `Below target. ${remaining} more needed this week. Every team member is accountable.`
+        : 'Below target. Every team member is accountable.';
+    }
+    // Red — KPI-specific stern message
+    const tip = STERN_RED_BY_KPI[kpiName];
+    return tip ?? 'Below target. This is not acceptable — the whole team must step up immediately.';
   }
 
   // Encouraging tone (default)
@@ -210,14 +230,14 @@ export function generateWhatsAppMessage(
   );
 
   lines.push(
-    `🛒 *Order in Store:* £${kpis.ois.storeTotal}/£${kpis.ois.target}${trendStr(kpis.ois.trend)}`,
+    `🛒 *Order in Store:* £${kpis.ois.storeTotal.toFixed(2)}/£${kpis.ois.target.toFixed(2)}${trendStr(kpis.ois.trend)}`,
   );
   lines.push(oisEncouragement);
 
   // Top performer in OIS leaderboard
   if (kpis.ois.leaderboard.length > 0) {
     const topOIS = kpis.ois.leaderboard[0];
-    lines.push(`🏆 Top: ${topOIS.name} — £${topOIS.revenue}`);
+    lines.push(`🏆 Top: ${topOIS.name} — £${topOIS.revenue.toFixed(2)}`);
   }
   lines.push('');
 
@@ -247,6 +267,11 @@ export function generateWhatsAppMessage(
       "Let's carry this momentum into next week — every interaction counts! 🔥",
       "Stay focused on the key areas above — consistency is everything! 🔥",
       "Small improvements add up — let's keep building on this! 🔥",
+    ],
+    stern: [
+      'These numbers are non-negotiable. Step up next week.',
+      'Performance below standard will not be tolerated. Each team member must take ownership.',
+      'Review the figures above. Improvement is expected — not optional.',
     ],
   };
 
